@@ -12,7 +12,6 @@ git clone git@gitlab.liebaopay.com:mikezhang/goplus.git
 
 ## 引用
 ```golang
-
 import (
 	"gitlab.liebaopay.com/mikezhang/goplus/encoding/base62"
 	"gitlab.liebaopay.com/mikezhang/goplus/uuid"
