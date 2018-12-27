@@ -10,3 +10,21 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# 该项目为依赖库, 不要独立的 vendor 目录, main.go
+vendor
+main.go
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# mac
+.DS_Store
+
+#golant
+.idea
+
+# vscode settings
+.vscode
