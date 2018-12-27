@@ -2,10 +2,10 @@ package uuid
 
 import (
 	"crypto/md5"
-	"encoding/base64"
 	"encoding/hex"
 
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
+	"gitlab.liebaopay.com/mikezhang/goplus/encoding/base62"
 )
 
 func calMD5(value string) string {
@@ -18,9 +18,9 @@ func calMD5(value string) string {
 // UUID UUID
 type UUID []byte
 
-// Base64 to Base64
-func (u *UUID) Base64() string {
-	return base64.RawURLEncoding.EncodeToString(*u)
+// Base62 to Base62
+func (u *UUID) Base62() string {
+	return base62.RawURLEncoding.EncodeToString(*u)
 }
 
 // MD5 to MD5
