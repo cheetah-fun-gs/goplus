@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 
 	"github.com/google/uuid"
+	"gitlab.liebaopay.com/mikezhang/goplus/encoding/basen"
 )
 
 func calMD5(value string) string {
@@ -21,6 +22,12 @@ type UUID []byte
 // Base64 to Base64
 func (u *UUID) Base64() string {
 	return base64.RawURLEncoding.EncodeToString(*u)
+}
+
+// Base62 to Base62
+func (u *UUID) Base62() string {
+	e := basen.NewBase62()
+	return e.Encode(*u)
 }
 
 // MD5 to MD5

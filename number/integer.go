@@ -55,3 +55,12 @@ func Xrange(start, end, step int) []int {
 	}
 	return r
 }
+
+// Pow x 的 y 次方, math.Pow 存在精度问题
+func Pow(x, y int) int {
+	z := 1
+	for i := 0; i < y; i++ {
+		z = z * x
+	}
+	return z
+}
