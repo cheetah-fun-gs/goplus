@@ -59,11 +59,11 @@ func WeightSample(weights []int) int {
 		panic("weights is blank")
 	}
 	totalWeight := number.Sum(weights)
-	randNum := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(totalWeight)
+	randNum := Randint(1, totalWeight)
 	startNum := 0
 	index := 0
 	for i, w := range weights {
-		if randNum < startNum+w {
+		if randNum <= startNum+w {
 			index = i
 			break
 		}
