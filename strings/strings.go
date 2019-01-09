@@ -23,3 +23,13 @@ func StringFillRight(in string, char string, n int) string {
 	}
 	return strings.Join(inSplit, "")
 }
+
+// IsInStringSlice 是否在列表中
+func IsInStringSlice(slice []string, find string) bool {
+	for _, s := range slice {
+		if s == find {
+			return true
+		}
+	}
+	return false
+}
