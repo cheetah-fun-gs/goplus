@@ -15,7 +15,10 @@ import (
 	stringsplus "gitlab.liebaopay.com/mikezhang/goplus/strings"
 )
 
-const charsetBase62 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+// 字符集
+const (
+	CharsetBase62 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+)
 
 // Encoder 编码器
 type Encoder struct {
@@ -156,6 +159,6 @@ func (e *Encoder) Decode(in string) ([]byte, error) {
 
 // NewBase62 一个新的编码器
 func NewBase62() *Encoder {
-	e, _ := NewEncoder(charsetBase62)
+	e, _ := NewEncoder(CharsetBase62)
 	return e
 }
