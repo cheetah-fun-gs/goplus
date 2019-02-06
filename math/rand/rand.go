@@ -103,3 +103,30 @@ func WeightSamples(weights []int, k int, isDistinct bool) []int {
 	}
 	return result
 }
+
+// ProbSamples 根据概率列表采样,k 为重复次数 返回index列表
+func ProbSamples(probs []float64, k int, isDistinct bool) []int {
+	if len(probs) == 0 {
+		panic("probs is blank")
+	}
+
+	result := []int{}
+	selected := map[int]bool{}
+	for i := 0; i < k; i++ {
+		for sampleIndex, prob := range probs {
+			if isDistinct {
+				if _, ok := selected[sampleIndex]; ok {
+					continue
+				}
+			}
+			if rand.New(rand.NewSource(time.Now().UnixNano())).Float64() > prob {
+				continue
+			}
+			result = append(result, sampleIndex)
+			if isDistinct {
+				selected[sampleIndex] = true
+			}
+		}
+	}
+	return result
+}
