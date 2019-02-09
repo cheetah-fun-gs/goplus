@@ -16,6 +16,18 @@ func calMD5(value string) string {
 	return hex.EncodeToString(cipherStr)
 }
 
+func encodeHex(dst []byte, uuid UUID) {
+	hex.Encode(dst, uuid[:4])
+	dst[8] = '-'
+	hex.Encode(dst[9:13], uuid[4:6])
+	dst[13] = '-'
+	hex.Encode(dst[14:18], uuid[6:8])
+	dst[18] = '-'
+	hex.Encode(dst[19:23], uuid[8:10])
+	dst[23] = '-'
+	hex.Encode(dst[24:], uuid[10:])
+}
+
 // UUID UUID
 type UUID []byte
 
@@ -35,13 +47,20 @@ func (u *UUID) MD5() string {
 	return hex.EncodeToString(*u)
 }
 
+// String to form xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+func (u *UUID) String() string {
+	var buf [36]byte
+	encodeHex(buf[:], *u)
+	return string(buf[:])
+}
+
 // GenerateUUID5 生成 UUID version 5
-func GenerateUUID5(nameSpace string, token string) UUID {
+func GenerateUUID5(nameSpace string, key string) UUID {
 	nameSpaceUUID, err := uuid.Parse(calMD5(nameSpace))
 	if err != nil {
 		panic(err)
 	}
-	u := uuid.NewSHA1(nameSpaceUUID, []byte(token))
+	u := uuid.NewSHA1(nameSpaceUUID, []byte(key))
 	b, err := u.MarshalBinary()
 	if err != nil {
 		panic(err)
