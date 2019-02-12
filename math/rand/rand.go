@@ -53,12 +53,7 @@ func Randints(m, n, k int, isDistinct bool) []int {
 	return result
 }
 
-// WeightSample 根据权重列表采样, 返回index
-func WeightSample(weights []int) int {
-	if len(weights) == 0 {
-		panic("weights is blank")
-	}
-	totalWeight := number.Sum(weights)
+func weightSampleInter(weights []int, totalWeight int) int {
 	randNum := Randint(1, totalWeight)
 	startNum := 0
 	index := 0
@@ -72,6 +67,18 @@ func WeightSample(weights []int) int {
 	return index
 }
 
+// WeightSample 根据权重列表采样, 返回index
+func WeightSample(weights []int) int {
+	if len(weights) == 0 {
+		panic("weights is blank")
+	}
+	totalWeight := number.Sum(weights)
+	if totalWeight == 0 {
+		panic("totalWeight is zero")
+	}
+	return weightSampleInter(weights, totalWeight)
+}
+
 // WeightSamples 根据权重列表批量采样, 返回index列表
 func WeightSamples(weights []int, k int, isDistinct bool) []int {
 	if len(weights) == 0 {
@@ -79,6 +86,10 @@ func WeightSamples(weights []int, k int, isDistinct bool) []int {
 	}
 	if k > len(weights) && isDistinct {
 		panic("k is more than weights length")
+	}
+	totalWeight := number.Sum(weights)
+	if totalWeight == 0 {
+		panic("totalWeight is zero")
 	}
 	if k == len(weights) && isDistinct {
 		return number.Xrange(0, len(weights), 1)
@@ -90,7 +101,7 @@ func WeightSamples(weights []int, k int, isDistinct bool) []int {
 		if len(result) >= k {
 			break
 		}
-		sampleIndex := WeightSample(weights)
+		sampleIndex := weightSampleInter(weights, totalWeight)
 		if isDistinct {
 			if _, ok := selected[sampleIndex]; ok {
 				continue
