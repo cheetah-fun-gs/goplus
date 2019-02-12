@@ -26,7 +26,7 @@ func Randints(m, n, k int, isDistinct bool) []int {
 	if k <= 0 {
 		panic("k is less than zero")
 	}
-	if k > (n - m + 1) {
+	if k > (n-m+1) && isDistinct {
 		panic("k is less than n - m")
 	}
 	if k == (n-m+1) && isDistinct {
@@ -77,7 +77,7 @@ func WeightSamples(weights []int, k int, isDistinct bool) []int {
 	if len(weights) == 0 {
 		panic("weights is blank")
 	}
-	if k > len(weights) {
+	if k > len(weights) && isDistinct {
 		panic("k is more than weights length")
 	}
 	if k == len(weights) && isDistinct {
