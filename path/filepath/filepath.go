@@ -2,6 +2,7 @@ package filepath
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -86,4 +87,40 @@ func Find(root, name string, isDir bool) (string, error) {
 		return "", fmt.Errorf("%s is not found in %s", name, root)
 	}
 	return p, nil
+}
+
+// DirNames 获取目录下的目录名列表
+func DirNames(dirPath string) ([]string, error) {
+	dirNames := []string{}
+
+	fpList, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fp := range fpList {
+		if !fp.IsDir() {
+			continue
+		}
+		dirNames = append(dirNames, fp.Name())
+	}
+	return dirNames, nil
+}
+
+// FileNames 获取目录下的文件名列表
+func FileNames(dirPath string) ([]string, error) {
+	fileNames := []string{}
+
+	fpList, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, fp := range fpList {
+		if fp.IsDir() {
+			continue
+		}
+		fileNames = append(fileNames, fp.Name())
+	}
+	return fileNames, nil
 }
