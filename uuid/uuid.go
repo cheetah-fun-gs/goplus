@@ -4,10 +4,24 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/hex"
+	"strings"
 
 	"github.com/google/uuid"
 	"gitlab.liebaopay.com/mikezhang/goplus/encoding/basen"
 )
+
+// md5 to xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+func md5ToUUIDString(md5Str string) string {
+	uuidSplit := []string{}
+	md5Split := strings.Split(md5Str, "")
+	for i, char := range md5Split {
+		if i == 8 || i == 12 || i == 16 || i == 20 {
+			uuidSplit = append(uuidSplit, "-")
+		}
+		uuidSplit = append(uuidSplit, char)
+	}
+	return strings.Join(uuidSplit, "")
+}
 
 func calMD5(value string) string {
 	md5Ctx := md5.New()
@@ -56,7 +70,7 @@ func (u *UUID) String() string {
 
 // GenerateUUID5 生成 UUID version 5
 func GenerateUUID5(nameSpace string, key string) UUID {
-	nameSpaceUUID, err := uuid.Parse(calMD5(nameSpace))
+	nameSpaceUUID, err := uuid.Parse(md5ToUUIDString(calMD5(nameSpace)))
 	if err != nil {
 		panic(err)
 	}
