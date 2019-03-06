@@ -11,11 +11,11 @@ var ErrorLocked = fmt.Errorf("locked")
 
 // Lock redis锁 秒级 只锁不解
 func Lock(conn redigo.Conn, lockKey string, timeOut int) error {
-	value, err := redigo.String(conn.Do("SET", lockKey, "", "EX", fmt.Sprintf("%d", timeOut), "NX"))
-	if err != nil {
+	_, err := conn.Do("SET", lockKey, "", "EX", fmt.Sprintf("%d", timeOut), "NX")
+	if err != nil && err != redigo.ErrNil {
 		return err
 	}
-	if value != "OK" {
+	if err == redigo.ErrNil {
 		return ErrorLocked
 	}
 	return nil
