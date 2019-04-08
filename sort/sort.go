@@ -41,7 +41,7 @@ func (anySortList AnySortReverseList) Less(i, j int) bool {
 }
 
 // AnyList 排序
-func AnyList(anyList []*Any, reverse bool) []interface{} {
+func AnyList(anyList []*Any, reverse bool) {
 	var sortList sort.Interface
 	if !reverse {
 		sortList = AnySortList(anyList)
@@ -49,10 +49,5 @@ func AnyList(anyList []*Any, reverse bool) []interface{} {
 		sortList = AnySortReverseList(anyList)
 	}
 	sort.Sort(sortList)
-
-	result := []interface{}{}
-	for _, v := range anyList {
-		result = append(result, v.Object)
-	}
-	return result
+	return
 }
