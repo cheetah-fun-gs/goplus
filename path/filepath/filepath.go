@@ -128,6 +128,37 @@ func FileNames(dirPath string) ([]string, error) {
 	return fileNames, nil
 }
 
+// CopyFile 拷贝文件
+func CopyFile(src, dst string) error {
+	srcAbs, err := filepath.Abs(src)
+	if err != nil {
+		return err
+	}
+	dstAbs, err := filepath.Abs(dst)
+	if err != nil {
+		return err
+	}
+
+	if srcAbs == dstAbs {
+		return fmt.Errorf("dst must different from src")
+	}
+
+	srcFile, err := os.Open(srcAbs)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dstAbs)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	return err
+}
+
 // ReplaceOption 替换参数
 type ReplaceOption struct {
 	Old      string
@@ -135,19 +166,13 @@ type ReplaceOption struct {
 	IsRegexp bool
 }
 
-// CopyAndReplace 拷贝文件并替换
-func CopyAndReplace(src, dst string, replaces []*ReplaceOption) error {
+// CopyFileAndReplace 拷贝文件并替换
+func CopyFileAndReplace(src, dst string, replaces []*ReplaceOption) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer srcFile.Close()
-
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
 
 	bytes, err := ioutil.ReadAll(srcFile)
 	if err != nil {
@@ -169,27 +194,12 @@ func CopyAndReplace(src, dst string, replaces []*ReplaceOption) error {
 		}
 	}
 
-	_, err = io.WriteString(dstFile, text)
-	return err
-}
-
-// Copy 拷贝文件
-func Copy(src, dst string) error {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer dstFile.Close()
 
-	_, err = io.Copy(dstFile, srcFile) // 把原来文件的内容拷贝到新文件中
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = io.WriteString(dstFile, text)
+	return err
 }
