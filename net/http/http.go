@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// JSON http-json 协议
+// JSON post 方式获取 json返回
 func JSON(url string, request interface{}, response interface{}) error {
 	postBody, err := json.Marshal(request)
 	if err != nil {
@@ -25,6 +25,26 @@ func JSON(url string, request interface{}, response interface{}) error {
 	}
 	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
+
+	err = json.Unmarshal(bodyBytes, response)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetJSON 用get方式获取json返回
+func GetJSON(url string, response interface{}) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 
 	err = json.Unmarshal(bodyBytes, response)
 	if err != nil {

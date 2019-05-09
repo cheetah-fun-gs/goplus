@@ -2,9 +2,12 @@ package filepath
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 // NoExt 去掉扩展名
@@ -123,4 +126,80 @@ func FileNames(dirPath string) ([]string, error) {
 		fileNames = append(fileNames, fp.Name())
 	}
 	return fileNames, nil
+}
+
+// CopyFile 拷贝文件
+func CopyFile(src, dst string) error {
+	srcAbs, err := filepath.Abs(src)
+	if err != nil {
+		return err
+	}
+	dstAbs, err := filepath.Abs(dst)
+	if err != nil {
+		return err
+	}
+
+	if srcAbs == dstAbs {
+		return fmt.Errorf("dst must different from src")
+	}
+
+	srcFile, err := os.Open(srcAbs)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dstAbs)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	return err
+}
+
+// ReplaceOption 替换参数
+type ReplaceOption struct {
+	Old      string
+	New      string
+	IsRegexp bool
+}
+
+// CopyFileAndReplace 拷贝文件并替换
+func CopyFileAndReplace(src, dst string, replaces []*ReplaceOption) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	bytes, err := ioutil.ReadAll(srcFile)
+	if err != nil {
+		return err
+	}
+
+	text := string(bytes)
+	for _, r := range replaces {
+		if !r.IsRegexp {
+			text = strings.Replace(text, r.Old, r.New, -1)
+		} else {
+			ok, err := regexp.Match(r.Old, []byte(text))
+			if err != nil {
+				return err
+			}
+			if ok {
+				text = regexp.MustCompile(r.Old).ReplaceAllString(text, r.New)
+			}
+		}
+	}
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = io.WriteString(dstFile, text)
+	return err
 }
