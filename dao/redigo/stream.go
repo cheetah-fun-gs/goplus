@@ -36,17 +36,45 @@ func decodeReply(reply interface{}, v interface{}) (string, error) {
 	return msgID, nil
 }
 
-// XAdd v 结构体指针
-func XAdd(redigoConn redigo.Conn, key string, maxlen int, v interface{}) (string, error) {
+// XAdd xadd  data:struct
+func XAdd(redigoConn redigo.Conn, key string, maxlen int, data interface{}) (string, error) {
 	if maxlen == 0 {
 		maxlen = 10000
 	}
 	args := []interface{}{key, "MAXLEN", "~", maxlen, "*"}
 
-	for k, v := range structs.Map(v) {
+	for k, v := range structs.Map(data) {
 		args = append(args, k, v)
 	}
 	return redigo.String(redigoConn.Do("XADD", args...))
+}
+
+// XAddPipeline xadd的pipeline模式
+func XAddPipeline(redigoConn redigo.Conn, key string, maxlen int, datas ...interface{}) ([]string, error) {
+	if maxlen == 0 {
+		maxlen = 10000
+	}
+
+	for _, data := range datas {
+		args := []interface{}{key, "MAXLEN", "~", maxlen, "*"}
+		for k, v := range structs.Map(data) {
+			args = append(args, k, v)
+		}
+		err := redigoConn.Send("XADD", args...)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := redigoConn.Flush()
+	if err != nil {
+		return nil, err
+	}
+	r := []string{}
+	for i := 0; i < len(datas); i++ {
+		reply, _ := redigo.String(redigoConn.Receive())
+		r = append(r, reply)
+	}
+	return r, nil
 }
 
 // XRead v 结构体指针, id 有2个特殊值: 0-0 从头开始读, $ 从加入时开始读
