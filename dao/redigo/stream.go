@@ -129,7 +129,7 @@ func XReadGroup(redigoConn redigo.Conn, key, groupName, consumerName, id string,
 	if err != nil {
 		return false, "", err
 	}
-	return false, id, err
+	return true, id, err
 }
 
 // XGroupCreate 创建消费者组
