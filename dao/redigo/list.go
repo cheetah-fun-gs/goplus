@@ -1,7 +1,9 @@
 package redigo
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -118,4 +120,44 @@ func RPop(conn redigo.Conn, key string, value interface{}) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+// LRange LRange
+// Usage:
+//     value := make([]*A, 0)
+//     LRange(conn, key, start, stop, &value)
+func LRange(conn redigo.Conn, key string, start, stop int, value interface{}) error {
+
+	storeVals, err := redigo.Strings(conn.Do("LRANGE", key, start, stop))
+	if err != nil && err != redigo.ErrNil {
+		return err
+	}
+
+	valStr, err := strListToStr(storeVals)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal([]byte(valStr), value)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func strListToStr(strList []string) (string, error) {
+	var buffer bytes.Buffer
+	size := len(strList)
+	for i, v := range strList {
+		if v == `""` || v == "" {
+			continue
+		}
+		buffer.WriteString(v)
+		if i != size-1 {
+			buffer.WriteString(",")
+		}
+	}
+
+	return fmt.Sprintf("[%s]", buffer.String()), nil
 }
