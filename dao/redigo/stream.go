@@ -102,7 +102,7 @@ func XRead(redigoConn redigo.Conn, key, id string, v interface{}, block int64) (
 }
 
 // XReadGroup v 结构体指针
-func XReadGroup(redigoConn redigo.Conn, key, groupName, consumerName, id string, v interface{}, block int64, isAck bool) (bool, string, error) {
+func XReadGroup(redigoConn redigo.Conn, key, groupName, consumerName, id string, v interface{}, block int, isAck bool) (bool, string, error) {
 	if block == 0 {
 		block = 1000
 	}
