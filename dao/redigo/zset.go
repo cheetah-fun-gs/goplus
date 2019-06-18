@@ -43,7 +43,7 @@ func ZrankWithScore(conn redigo.Conn, key, member string, isReverse bool) (bool,
 		return false, nil, nil
 	}
 	rank := r[0].(int64)
-	scoreStr := string(r[0].([]byte))
+	scoreStr := string(r[1].([]byte))
 	score, err := strconv.ParseFloat(scoreStr, 64)
 	if err != nil {
 		return false, nil, err
