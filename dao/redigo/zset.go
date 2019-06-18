@@ -10,7 +10,7 @@ import (
 // ZsetMember zset的成员
 type ZsetMember struct {
 	Member string
-	Rank   int
+	Rank   int64
 	Score  float64
 }
 
@@ -42,7 +42,7 @@ func ZrankWithScore(conn redigo.Conn, key, member string, isReverse bool) (bool,
 	if err == redigo.ErrNil {
 		return false, nil, nil
 	}
-	rank := r[0].(int)
+	rank := r[0].(int64)
 	scoreStr := string(r[0].([]byte))
 	score, err := strconv.ParseFloat(scoreStr, 64)
 	if err != nil {
