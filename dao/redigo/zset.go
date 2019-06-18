@@ -26,7 +26,7 @@ func ZrankWithScore(conn redigo.Conn, key, member string, isReverse bool) (bool,
 	}
 
 	scriptContext := fmt.Sprintf(`local v = redis.call("%s", KEYS[1], ARGV[1])
-	if v == nil
+	if (v == nil or (type(v) == 'boolean' and v == false))
 	then
 		return nil
 	else

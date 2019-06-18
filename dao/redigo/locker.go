@@ -88,9 +88,9 @@ func (locker *Locker) lock() error {
 func (locker *Locker) extend() error {
 	// 脚本统一返回 OK 成功; nil 失败
 	scriptContext := `local v = redis.call("GET", KEYS[1])
-	if v == nil
+	if (v == nil or (type(v) == 'boolean' and v == false))
 	then
-		return redis.call("SET", KEYS[1], ARGV[1], "PX", ARGV[2], "NX)
+		return redis.call("SET", KEYS[1], ARGV[1], "PX", ARGV[2], "NX")
 	elseif v == ARGV[1]
 	then
 		redis.call("PEXPIRE", KEYS[1], ARGV[2])
