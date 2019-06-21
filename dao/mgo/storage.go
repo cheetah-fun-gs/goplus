@@ -7,43 +7,43 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-// ErrorBulkParam 参数错误
+// ErrorStorageParam 参数错误
 var (
-	ErrorBulkParam = fmt.Errorf("bulk param error")
+	ErrorStorageParam = fmt.Errorf("Storage param error")
 )
 
-// BulkKeyWildcard 通配Key 特殊用法
+// StorageKeyWildcard 通配Key 仅有 StorageUpdateMultiKey 才会使用
 const (
-	BulkKeyWildcard = "*"
+	StorageKeyWildcard = "*"
 )
 
-// BulkUpdateMethod 更新方法
-type BulkUpdateMethod int
+// StorageUpdateMethod 更新方法
+type StorageUpdateMethod int
 
 // 操作方法 定义
 const (
-	BulkUpdateMethodGet = iota // 虽然不想修改 但是想返回最新的值
-	BulkUpdateMethodSet
-	BulkUpdateMethodDel
-	BulkUpdateMethodInc
+	StorageUpdateMethodGet = iota // 虽然不想修改 但是想返回最新的值
+	StorageUpdateMethodSet
+	StorageUpdateMethodDel
+	StorageUpdateMethodInc
 )
 
-// BulkItem 存储项
-type BulkItem struct {
+// StorageItem 存储项
+type StorageItem struct {
 	Key   string
 	Field string
 	Value interface{} // 为 nil 表示不存在该 field
 }
 
-// BulkUpdateItem 更新项
-type BulkUpdateItem struct {
+// StorageUpdateItem 更新项
+type StorageUpdateItem struct {
 	Key    string
 	Field  string
 	Value  interface{}
-	Method BulkUpdateMethod
+	Method StorageUpdateMethod
 }
 
-func bulkParseResult1(in []*bson.M, out []*BulkItem) {
+func storageParseResult1(in []*bson.M, out []*StorageItem) {
 	for _, item := range out {
 		var isMatch bool
 		for _, v := range in {
@@ -69,8 +69,8 @@ func bulkParseResult1(in []*bson.M, out []*BulkItem) {
 	return
 }
 
-func bulkParseResult2(in []*bson.M) (out []*BulkItem) {
-	out = []*BulkItem{}
+func storageParseResult2(in []*bson.M) (out []*StorageItem) {
+	out = []*StorageItem{}
 	for _, v := range in {
 		vv := *v
 		key := vv["_id"]
@@ -78,7 +78,7 @@ func bulkParseResult2(in []*bson.M) (out []*BulkItem) {
 			if field == "_id" {
 				continue
 			}
-			out = append(out, &BulkItem{
+			out = append(out, &StorageItem{
 				Key:   key.(string),
 				Field: field,
 				Value: value,
@@ -88,13 +88,13 @@ func bulkParseResult2(in []*bson.M) (out []*BulkItem) {
 	return
 }
 
-// BulkFind 根据指定 key 和 field 获取数据
-func BulkFind(mgoDB *mgo.Database, collection string, items []*BulkItem) error {
+// StorageFind 根据指定 key 和 field 获取数据
+func StorageFind(mgoDB *mgo.Database, collection string, items []*StorageItem) error {
 	keys := []string{}
 	selector := bson.M{}
 	for _, item := range items {
-		if item.Key == "" || item.Key == BulkKeyWildcard || item.Field == "" {
-			return ErrorBulkParam
+		if item.Key == "" || item.Key == StorageKeyWildcard || item.Field == "" {
+			return ErrorStorageParam
 		}
 
 		keys = append(keys, item.Key)
@@ -106,7 +106,7 @@ func BulkFind(mgoDB *mgo.Database, collection string, items []*BulkItem) error {
 
 	query := bson.M{"_id": bson.M{"$in": keys}}
 
-	result, err := daoBulkFind(mgoDB, collection, query, selector)
+	result, err := daoStorageFind(mgoDB, collection, query, selector)
 	if err != nil {
 		return err
 	}
@@ -114,30 +114,30 @@ func BulkFind(mgoDB *mgo.Database, collection string, items []*BulkItem) error {
 		return nil
 	}
 
-	bulkParseResult1(result, items)
+	storageParseResult1(result, items)
 	return nil
 }
 
-// BulkFindByKeys 根据指定 key 获取数据
-func BulkFindByKeys(mgoDB *mgo.Database, collection string, keys []string) ([]*BulkItem, error) {
+// StorageFindByKeys 根据指定 key 获取数据
+func StorageFindByKeys(mgoDB *mgo.Database, collection string, keys []string) ([]*StorageItem, error) {
 	if len(keys) == 0 {
-		return nil, ErrorBulkParam
+		return nil, ErrorStorageParam
 	}
 
 	query := bson.M{"_id": bson.M{"$in": keys}}
 
-	result, err := daoBulkFind(mgoDB, collection, query, nil)
+	result, err := daoStorageFind(mgoDB, collection, query, nil)
 	if err != nil {
 		return nil, err
 	}
 	if len(result) == 0 {
-		return []*BulkItem{}, nil
+		return []*StorageItem{}, nil
 	}
 
-	return bulkParseResult2(result), nil
+	return storageParseResult2(result), nil
 }
 
-func daoBulkFind(mgoDB *mgo.Database, collection string, query, selector bson.M) ([]*bson.M, error) {
+func daoStorageFind(mgoDB *mgo.Database, collection string, query, selector bson.M) ([]*bson.M, error) {
 	var err error
 	result := []*bson.M{}
 	if selector != nil && len(selector) != 0 {
@@ -155,62 +155,62 @@ func daoBulkFind(mgoDB *mgo.Database, collection string, query, selector bson.M)
 	return result, nil
 }
 
-type bulkUpdateParam struct {
+type storageUpdateByKey struct {
 	Key    string
 	Query  bson.M
 	Update bson.M
 }
 
-func bulkParseUpdate(in []*BulkUpdateItem) ([]*bulkUpdateParam, error) {
-	cache := map[string]*bulkUpdateParam{}
+func storageParseUpdateParams(in []*StorageUpdateItem) ([]*storageUpdateByKey, error) {
+	m := map[string]*storageUpdateByKey{}
 
 	var isHasWildcardKey bool
 
 	for _, item := range in {
 		if item.Key == "" || item.Field == "" {
-			return nil, ErrorBulkParam
+			return nil, ErrorStorageParam
 		}
 
-		if item.Key == BulkKeyWildcard {
+		if item.Key == StorageKeyWildcard {
 			isHasWildcardKey = true
 		}
 
-		if isHasWildcardKey && item.Key != BulkKeyWildcard {
-			return nil, ErrorBulkParam
+		if isHasWildcardKey && item.Key != StorageKeyWildcard {
+			return nil, ErrorStorageParam
 		}
 
-		param, ok := cache[item.Key]
+		param, ok := m[item.Key]
 		if !ok {
-			param = &bulkUpdateParam{
+			param = &storageUpdateByKey{
 				Key:    item.Key,
 				Query:  bson.M{},
 				Update: bson.M{},
 			}
-			cache[item.Key] = param
+			m[item.Key] = param
 		}
 
-		if item.Method == BulkUpdateMethodInc {
+		if item.Method == StorageUpdateMethodInc {
 			if _, ok := item.Value.(int); !ok {
-				return nil, ErrorBulkParam
+				return nil, ErrorStorageParam
 			}
 		}
 
 		switch item.Method {
-		case BulkUpdateMethodSet:
+		case StorageUpdateMethodSet:
 			set, ok := param.Update["$set"]
 			if ok {
 				set.(bson.M)[item.Field] = item.Value
 			} else {
 				param.Update["$set"] = bson.M{item.Field: item.Value}
 			}
-		case BulkUpdateMethodDel:
+		case StorageUpdateMethodDel:
 			unset, ok := param.Update["$unset"]
 			if ok {
 				unset.(bson.M)[item.Field] = ""
 			} else {
 				param.Update["$unset"] = bson.M{item.Field: ""}
 			}
-		case BulkUpdateMethodInc:
+		case StorageUpdateMethodInc:
 			inc, ok := param.Update["$inc"]
 			if ok {
 				inc.(bson.M)[item.Field] = item.Value
@@ -228,98 +228,98 @@ func bulkParseUpdate(in []*BulkUpdateItem) ([]*bulkUpdateParam, error) {
 		}
 	}
 
-	out := []*bulkUpdateParam{}
-	for _, param := range cache {
+	out := []*storageUpdateByKey{}
+	for _, param := range m {
 		out = append(out, param)
 	}
 	return out, nil
 }
 
-// BulkUpdateSingleKey 单key更新 保证原子性
-func BulkUpdateSingleKey(mgoDB *mgo.Database, collection string, updateItems []*BulkUpdateItem) ([]*BulkItem, error) {
-	params, err := bulkParseUpdate(updateItems)
+// StorageUpdateSingleKey 单key更新 保证原子性
+func StorageUpdateSingleKey(mgoDB *mgo.Database, collection string, updateItems []*StorageUpdateItem) ([]*StorageItem, error) {
+	params, err := storageParseUpdateParams(updateItems)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(params) != 1 {
-		return nil, ErrorBulkParam
+		return nil, ErrorStorageParam
 	}
 
 	param := params[0]
-	if param.Key == BulkKeyWildcard {
-		return nil, ErrorBulkParam
+	if param.Key == StorageKeyWildcard {
+		return nil, ErrorStorageParam
 	}
 
-	result, err := daoBulkUpdate(mgoDB, collection, []string{param.Key}, param.Query, param.Update)
+	result, err := daoStorageUpdate(mgoDB, collection, []string{param.Key}, param.Query, param.Update)
 	if err != nil {
 		return nil, err
 	}
 
-	items := []*BulkItem{}
+	items := []*StorageItem{}
 	for _, updateItem := range updateItems {
-		items = append(items, &BulkItem{
+		items = append(items, &StorageItem{
 			Key:   updateItem.Key,
 			Field: updateItem.Field,
 		})
 	}
-	bulkParseResult1(result, items)
+	storageParseResult1(result, items)
 	return items, nil
 }
 
-// BulkUpdateMultiKey 多key同时更新 保证原子性
-func BulkUpdateMultiKey(mgoDB *mgo.Database, collection string, keys []string, updateItems []*BulkUpdateItem) ([]*BulkItem, error) {
-	params, err := bulkParseUpdate(updateItems)
+// StorageUpdateMultiKey 多key同时更新 保证原子性
+func StorageUpdateMultiKey(mgoDB *mgo.Database, collection string, keys []string, updateItems []*StorageUpdateItem) ([]*StorageItem, error) {
+	params, err := storageParseUpdateParams(updateItems)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(params) != 1 {
-		return nil, ErrorBulkParam
+		return nil, ErrorStorageParam
 	}
 
 	param := params[0]
-	if param.Key != BulkKeyWildcard {
-		return nil, ErrorBulkParam
+	if param.Key != StorageKeyWildcard {
+		return nil, ErrorStorageParam
 	}
 
-	result, err := daoBulkUpdate(mgoDB, collection, keys, param.Query, param.Update)
+	result, err := daoStorageUpdate(mgoDB, collection, keys, param.Query, param.Update)
 	if err != nil {
 		return nil, err
 	}
 
-	items := []*BulkItem{}
+	items := []*StorageItem{}
 	for _, key := range keys {
 		for _, updateItem := range updateItems {
 			updateItem.Key = key
-			items = append(items, &BulkItem{
+			items = append(items, &StorageItem{
 				Key:   updateItem.Key,
 				Field: updateItem.Field,
 			})
 		}
 	}
-	bulkParseResult1(result, items)
+	storageParseResult1(result, items)
 	return items, nil
 }
 
-// BulkUpdate 多key循环更新 不能保证原子性 可以使用 failure 再调用
-func BulkUpdate(mgoDB *mgo.Database, collection string, updateItems []*BulkUpdateItem) (
-	returnNew []*BulkItem, success, failure []*BulkUpdateItem, err error) {
-	params, err := bulkParseUpdate(updateItems)
+// StorageUpdate 多key循环更新 不能保证原子性 可以反复使用 failure 重试
+func StorageUpdate(mgoDB *mgo.Database, collection string, updateItems []*StorageUpdateItem) (
+	returnNew []*StorageItem, success, failure []*StorageUpdateItem, err error) {
+	params, err := storageParseUpdateParams(updateItems)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	for _, param := range params {
-		if param.Key == BulkKeyWildcard {
-			return nil, nil, nil, ErrorBulkParam
+		if param.Key == StorageKeyWildcard {
+			return nil, nil, nil, ErrorStorageParam
 		}
 	}
 
 	successKeys := map[string]bool{}
 	result := []*bson.M{}
 	for _, param := range params {
-		r, err := daoBulkUpdate(mgoDB, collection, []string{param.Key}, param.Query, param.Update)
+		r, err := daoStorageUpdate(mgoDB, collection, []string{param.Key}, param.Query, param.Update)
 		if err != nil {
 			continue
 		}
@@ -327,11 +327,11 @@ func BulkUpdate(mgoDB *mgo.Database, collection string, updateItems []*BulkUpdat
 		result = append(result, r...)
 	}
 
-	success, failure = []*BulkUpdateItem{}, []*BulkUpdateItem{}
-	returnNew = []*BulkItem{}
+	success, failure = []*StorageUpdateItem{}, []*StorageUpdateItem{}
+	returnNew = []*StorageItem{}
 	for _, updateItem := range updateItems {
 		if _, ok := successKeys[updateItem.Key]; ok {
-			returnNew = append(returnNew, &BulkItem{
+			returnNew = append(returnNew, &StorageItem{
 				Key:   updateItem.Key,
 				Field: updateItem.Field,
 			})
@@ -341,13 +341,13 @@ func BulkUpdate(mgoDB *mgo.Database, collection string, updateItems []*BulkUpdat
 		failure = append(failure, updateItem)
 	}
 
-	bulkParseResult1(result, returnNew)
+	storageParseResult1(result, returnNew)
 	return
 }
 
-func daoBulkUpdate(mgoDB *mgo.Database, collection string, keys []string, query, update bson.M) ([]*bson.M, error) {
+func daoStorageUpdate(mgoDB *mgo.Database, collection string, keys []string, query, update bson.M) ([]*bson.M, error) {
 	if len(keys) == 0 {
-		return nil, ErrorBulkParam
+		return nil, ErrorStorageParam
 	}
 	change := mgo.Change{
 		Update:    update,
