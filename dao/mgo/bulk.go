@@ -17,21 +17,13 @@ const (
 	BulkKeyWildcard = "*"
 )
 
-// BulkDataType 数据类型
-type BulkDataType int
-
-// 数据类型 定义
-const (
-	BulkDataTypeDefault = iota
-	BulkDataTypeInt
-)
-
 // BulkUpdateMethod 更新方法
 type BulkUpdateMethod int
 
 // 操作方法 定义
 const (
-	BulkUpdateMethodSet = iota
+	BulkUpdateMethodGet = iota // 虽然不想修改 但是想返回最新的值
+	BulkUpdateMethodSet
 	BulkUpdateMethodDel
 	BulkUpdateMethodInc
 )
@@ -40,13 +32,14 @@ const (
 type BulkItem struct {
 	Key   string
 	Field string
-	Value interface{}
+	Value interface{} // 为 nil 表示不存在该 field
 }
 
 // BulkUpdateItem 更新项
 type BulkUpdateItem struct {
-	*BulkItem
-	Type   BulkDataType
+	Key    string
+	Field  string
+	Value  interface{}
 	Method BulkUpdateMethod
 }
 
@@ -196,9 +189,6 @@ func bulkParseUpdate(in []*BulkUpdateItem) ([]*bulkUpdateParam, error) {
 			cache[item.Key] = param
 		}
 
-		if item.Type == BulkDataTypeDefault && item.Method == BulkUpdateMethodInc {
-			return nil, ErrorBulkParam
-		}
 		if item.Method == BulkUpdateMethodInc {
 			if _, ok := item.Value.(int); !ok {
 				return nil, ErrorBulkParam
@@ -268,7 +258,10 @@ func BulkUpdateSingleKey(mgoDB *mgo.Database, collection string, updateItems []*
 
 	items := []*BulkItem{}
 	for _, updateItem := range updateItems {
-		items = append(items, updateItem.BulkItem)
+		items = append(items, &BulkItem{
+			Key:   updateItem.Key,
+			Field: updateItem.Field,
+		})
 	}
 	bulkParseResult1(result, items)
 	return items, nil
@@ -299,46 +292,62 @@ func BulkUpdateMultiKey(mgoDB *mgo.Database, collection string, keys []string, u
 	for _, key := range keys {
 		for _, updateItem := range updateItems {
 			updateItem.Key = key
-			items = append(items, updateItem.BulkItem)
+			items = append(items, &BulkItem{
+				Key:   updateItem.Key,
+				Field: updateItem.Field,
+			})
 		}
 	}
-
 	bulkParseResult1(result, items)
 	return items, nil
 }
 
-// BulkUpdate 多key循环更新 不能保证原子性
-func BulkUpdate(mgoDB *mgo.Database, collection string, updateItems []*BulkUpdateItem) ([]*BulkItem, error) {
+// BulkUpdate 多key循环更新 不能保证原子性 可以使用 failure 再调用
+func BulkUpdate(mgoDB *mgo.Database, collection string, updateItems []*BulkUpdateItem) (
+	returnNew []*BulkItem, success, failure []*BulkUpdateItem, err error) {
 	params, err := bulkParseUpdate(updateItems)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	result := []*bson.M{}
 	for _, param := range params {
 		if param.Key == BulkKeyWildcard {
-			return nil, ErrorBulkParam
+			return nil, nil, nil, ErrorBulkParam
 		}
+	}
 
+	successKeys := map[string]bool{}
+	result := []*bson.M{}
+	for _, param := range params {
 		r, err := daoBulkUpdate(mgoDB, collection, []string{param.Key}, param.Query, param.Update)
 		if err != nil {
 			continue
 		}
+		successKeys[param.Key] = true
 		result = append(result, r...)
 	}
 
-	items := []*BulkItem{}
+	success, failure = []*BulkUpdateItem{}, []*BulkUpdateItem{}
+	returnNew = []*BulkItem{}
 	for _, updateItem := range updateItems {
-		items = append(items, updateItem.BulkItem)
+		if _, ok := successKeys[updateItem.Key]; ok {
+			returnNew = append(returnNew, &BulkItem{
+				Key:   updateItem.Key,
+				Field: updateItem.Field,
+			})
+			success = append(success, updateItem)
+			continue
+		}
+		failure = append(failure, updateItem)
 	}
 
-	bulkParseResult1(result, items)
-	return items, nil
+	bulkParseResult1(result, returnNew)
+	return
 }
 
 func daoBulkUpdate(mgoDB *mgo.Database, collection string, keys []string, query, update bson.M) ([]*bson.M, error) {
 	if len(keys) == 0 {
-		return nil, mgo.ErrNotFound // TODO:
+		return nil, ErrorBulkParam
 	}
 	change := mgo.Change{
 		Update:    update,
@@ -359,10 +368,21 @@ func daoBulkUpdate(mgoDB *mgo.Database, collection string, keys []string, query,
 		}
 	}
 
-	result := []*bson.M{}
-	_, err := mgoDB.C(collection).Find(query).Apply(change, &result)
+	var err error
+	var result []*bson.M
+
+	if len(keys) == 1 {
+		r := bson.M{}
+		_, err = mgoDB.C(collection).Find(query).Apply(change, &r)
+		result = append(result, &r)
+	} else {
+		r := []*bson.M{}
+		_, err = mgoDB.C(collection).Find(query).Apply(change, &r)
+		result = r
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	return result, nil
 }
