@@ -9,9 +9,7 @@ func StringFillLeft(in string, char string, n int) string {
 	for i := 0; i < n; i++ {
 		out = append(out, char)
 	}
-	for _, char := range inSplit {
-		out = append(out, char)
-	}
+	out = append(out, inSplit...)
 	return strings.Join(out, "")
 }
 

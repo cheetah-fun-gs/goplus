@@ -149,9 +149,7 @@ func (e *Encoder) Decode(in string) ([]byte, error) {
 		if last {
 			b = b[len(b)-remainder:]
 		}
-		for _, bb := range b {
-			out = append(out, bb)
-		}
+		out = append(out, b...)
 		offset += e.CharNum
 	}
 	return out, nil
