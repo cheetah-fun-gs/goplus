@@ -1,6 +1,7 @@
 package rand
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -8,19 +9,49 @@ import (
 )
 
 func randintInter(s rand.Source, m, n int) int {
-	if m > n {
-		panic("m is more than n")
-	}
 	if m == n {
 		return m
 	}
 	return rand.New(s).Intn(n+1-m) + m
 }
 
+// Randint2 返回异常
+func Randint2(m, n int) (int, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+			return
+		}
+	}()
+	if err != nil {
+		return 0, err
+	}
+	return Randint(m, n), nil
+}
+
 // Randint 区间 [m,n] 中随机一个值
 func Randint(m, n int) int {
+	if m > n {
+		panic("m is more than n")
+	}
 	s := rand.NewSource(time.Now().UnixNano())
 	return randintInter(s, m, n)
+}
+
+// Randints2 返回异常版本
+func Randints2(m, n, k int, isDistinct bool) ([]int, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+			return
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
+	return Randints(m, n, k, isDistinct), nil
 }
 
 // Randints 区间 [m,n] 中随机 k 个值, isDistinct 是否允许重复
@@ -74,6 +105,21 @@ func weightSampleInter(s rand.Source, weights []int, totalWeight int) int {
 	return index
 }
 
+// WeightSample2 返回异常版本
+func WeightSample2(weights []int) (int, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+			return
+		}
+	}()
+	if err != nil {
+		return 0, err
+	}
+	return WeightSample(weights), nil
+}
+
 // WeightSample 根据权重列表采样, 返回index
 func WeightSample(weights []int) int {
 	if len(weights) == 0 {
@@ -85,6 +131,21 @@ func WeightSample(weights []int) int {
 	}
 	s := rand.NewSource(time.Now().UnixNano())
 	return weightSampleInter(s, weights, totalWeight)
+}
+
+// WeightSamples2 返回异常版本
+func WeightSamples2(weights []int, k int, isDistinct bool) ([]int, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+			return
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
+	return WeightSamples(weights, k, isDistinct), nil
 }
 
 // WeightSamples 根据权重列表批量采样, 返回index列表
@@ -123,6 +184,21 @@ func WeightSamples(weights []int, k int, isDistinct bool) []int {
 		}
 	}
 	return result
+}
+
+// ProbSamples2 返回异常版本
+func ProbSamples2(probs []float64, k int, isDistinct bool) ([]int, error) {
+	var err error
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+			return
+		}
+	}()
+	if err != nil {
+		return nil, err
+	}
+	return ProbSamples(probs, k, isDistinct), nil
 }
 
 // ProbSamples 根据概率列表采样,k 为重复次数 返回index列表
