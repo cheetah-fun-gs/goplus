@@ -7,15 +7,20 @@ import (
 	"gitlab.liebaopay.com/mikezhang/goplus/number"
 )
 
-// Randint 区间 [m,n] 中随机一个值
-func Randint(m, n int) int {
+func randintInter(s rand.Source, m, n int) int {
 	if m > n {
 		panic("m is more than n")
 	}
 	if m == n {
 		return m
 	}
-	return rand.New(rand.NewSource(time.Now().UnixNano())).Intn(n+1-m) + m
+	return rand.New(s).Intn(n+1-m) + m
+}
+
+// Randint 区间 [m,n] 中随机一个值
+func Randint(m, n int) int {
+	s := rand.NewSource(time.Now().UnixNano())
+	return randintInter(s, m, n)
 }
 
 // Randints 区间 [m,n] 中随机 k 个值, isDistinct 是否允许重复
@@ -33,13 +38,15 @@ func Randints(m, n, k int, isDistinct bool) []int {
 		return number.Xrange(m, n+1, 1)
 	}
 
+	s := rand.NewSource(time.Now().UnixNano())
+
 	result := []int{}
 	selected := map[int]bool{}
 	for {
 		if len(result) >= k {
 			break
 		}
-		randomNum := Randint(m, n)
+		randomNum := randintInter(s, m, n)
 		if isDistinct {
 			if _, ok := selected[randomNum]; ok {
 				continue
@@ -53,8 +60,8 @@ func Randints(m, n, k int, isDistinct bool) []int {
 	return result
 }
 
-func weightSampleInter(weights []int, totalWeight int) int {
-	randNum := Randint(1, totalWeight)
+func weightSampleInter(s rand.Source, weights []int, totalWeight int) int {
+	randNum := randintInter(s, 1, totalWeight)
 	startNum := 0
 	index := 0
 	for i, w := range weights {
@@ -76,7 +83,8 @@ func WeightSample(weights []int) int {
 	if totalWeight == 0 {
 		panic("totalWeight is zero")
 	}
-	return weightSampleInter(weights, totalWeight)
+	s := rand.NewSource(time.Now().UnixNano())
+	return weightSampleInter(s, weights, totalWeight)
 }
 
 // WeightSamples 根据权重列表批量采样, 返回index列表
@@ -95,13 +103,15 @@ func WeightSamples(weights []int, k int, isDistinct bool) []int {
 		return number.Xrange(0, len(weights), 1)
 	}
 
+	s := rand.NewSource(time.Now().UnixNano())
+
 	result := []int{}
 	selected := map[int]bool{}
 	for {
 		if len(result) >= k {
 			break
 		}
-		sampleIndex := weightSampleInter(weights, totalWeight)
+		sampleIndex := weightSampleInter(s, weights, totalWeight)
 		if isDistinct {
 			if _, ok := selected[sampleIndex]; ok {
 				continue
@@ -121,6 +131,8 @@ func ProbSamples(probs []float64, k int, isDistinct bool) []int {
 		panic("probs is blank")
 	}
 
+	s := rand.NewSource(time.Now().UnixNano())
+
 	result := []int{}
 	selected := map[int]bool{}
 	for i := 0; i < k; i++ {
@@ -130,7 +142,7 @@ func ProbSamples(probs []float64, k int, isDistinct bool) []int {
 					continue
 				}
 			}
-			if rand.New(rand.NewSource(time.Now().UnixNano())).Float64() > prob {
+			if rand.New(s).Float64() > prob {
 				continue
 			}
 			result = append(result, sampleIndex)
