@@ -206,6 +206,9 @@ func ProbSamples(probs []float64, k int, isDistinct bool) []int {
 	if len(probs) == 0 {
 		panic("probs is blank")
 	}
+	if k > len(probs) && isDistinct {
+		panic("k is more than probs length")
+	}
 
 	s := rand.NewSource(time.Now().UnixNano())
 
