@@ -13,11 +13,14 @@ var ErrorLocked = fmt.Errorf("locked")
 
 // Lock redis锁 秒级 只锁不解
 func Lock(conn redigo.Conn, name string, timeout int) error {
-	_, err := conn.Do("SET", name, "", "EX", fmt.Sprintf("%d", timeout), "NX")
+	ok, err := redigo.String(conn.Do("SET", name, "", "EX", fmt.Sprintf("%d", timeout), "NX"))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
 	if err == redigo.ErrNil {
+		return ErrorLocked
+	}
+	if ok == "" {
 		return ErrorLocked
 	}
 	return nil
@@ -75,11 +78,14 @@ func (locker *Locker) lock() error {
 	conn := locker.pool.Get()
 	defer conn.Close()
 
-	_, err := conn.Do("SET", locker.name, locker.uuid, "PX", locker.millisecond, "NX")
+	ok, err := redigo.String(conn.Do("SET", locker.name, locker.uuid, "PX", locker.millisecond, "NX"))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
 	if err == redigo.ErrNil {
+		return ErrorLocked
+	}
+	if ok == "" {
 		return ErrorLocked
 	}
 	return nil
@@ -102,11 +108,14 @@ func (locker *Locker) extend() error {
 	defer conn.Close()
 
 	script := redigo.NewScript(1, scriptContext)
-	_, err := script.Do(conn, locker.name, locker.uuid, locker.millisecond)
+	ok, err := redigo.String(script.Do(conn, locker.name, locker.uuid, locker.millisecond))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
 	if err == redigo.ErrNil {
+		return ErrorLocked
+	}
+	if ok == "" {
 		return ErrorLocked
 	}
 	return nil
