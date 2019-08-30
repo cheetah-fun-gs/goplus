@@ -3,6 +3,7 @@ package http
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -24,11 +25,17 @@ func JSONoVerify(url string, request interface{}, response interface{}) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("%s", resp.Status)
+	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -54,11 +61,17 @@ func JSON(url string, request interface{}, response interface{}) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("%s", resp.Status)
+	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -77,6 +90,10 @@ func GetJSON(url string, response interface{}) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("%s", resp.Status)
 	}
 
 	defer resp.Body.Close()
