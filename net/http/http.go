@@ -29,7 +29,11 @@ func JSONoVerify(url string, request interface{}, response interface{}) error {
 		return err
 	}
 	defer resp.Body.Close()
+
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 
 	err = json.Unmarshal(bodyBytes, response)
 	if err != nil {
@@ -55,7 +59,11 @@ func JSON(url string, request interface{}, response interface{}) error {
 		return err
 	}
 	defer resp.Body.Close()
+
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
 
 	err = json.Unmarshal(bodyBytes, response)
 	if err != nil {
