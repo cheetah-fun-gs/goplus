@@ -1,11 +1,42 @@
 package http
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
+
+// JSONoVerify 跳过校验 解决 x509: certificate signed by unknown authority 的问题
+func JSONoVerify(url string, request interface{}, response interface{}) error {
+	postBody, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{Transport: tr}
+	req, err := http.NewRequest("POST", url, strings.NewReader(string(postBody)))
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+
+	err = json.Unmarshal(bodyBytes, response)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // JSON post 方式获取 json返回
 func JSON(url string, request interface{}, response interface{}) error {
