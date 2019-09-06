@@ -8,10 +8,10 @@ import (
 	uuidplus "gitlab.liebaopay.com/mikezhang/goplus/uuid"
 )
 
-// ErrorLocked 被占用
+// ErrorLocked 错误: 已锁
 var ErrorLocked = fmt.Errorf("locked")
 
-// Lock redis锁 秒级 只锁不解
+// Lock 简单锁: 超时释放, 秒级, 无需解锁
 func Lock(conn redigo.Conn, name string, timeout int) error {
 	ok, err := redigo.String(conn.Do("SET", name, "", "EX", fmt.Sprintf("%d", timeout), "NX"))
 	if err != nil && err != redigo.ErrNil {
@@ -26,7 +26,7 @@ func Lock(conn redigo.Conn, name string, timeout int) error {
 	return nil
 }
 
-// Locker 锁
+// Locker 守护锁: 需解锁, 进程退出自动解锁
 type Locker struct {
 	pool        *redigo.Pool
 	name        string
@@ -35,7 +35,7 @@ type Locker struct {
 	ticker      *time.Ticker
 }
 
-// NewLocker 1. 需要解锁; 2. 进程退出自动解锁
+// NewLocker 获取一个守护锁
 func NewLocker(pool *redigo.Pool, name string, millisecond int) (*Locker, error) {
 	if millisecond == 0 {
 		millisecond = 200
@@ -53,6 +53,7 @@ func NewLocker(pool *redigo.Pool, name string, millisecond int) (*Locker, error)
 	}
 	err := locker.lock()
 	if err != nil {
+		ticker.Stop()
 		return nil, err
 	}
 
@@ -69,7 +70,7 @@ func NewLocker(pool *redigo.Pool, name string, millisecond int) (*Locker, error)
 	return locker, nil
 }
 
-// Close 解锁
+// Close 守护锁解锁
 func (locker *Locker) Close() {
 	locker.ticker.Stop()
 }
