@@ -1,3 +1,4 @@
+// Package filepath 路径, 目录, 文件名方法
 package filepath
 
 import (
@@ -71,7 +72,7 @@ func Dirs(root string) ([]string, error) {
 }
 
 // Find 遍历文件夹，查找指定路径
-func Find(root, name string, isDir bool) (string, error) {
+func Find(root, name string, isDir bool) (bool, string, error) {
 	p := ""
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if info == nil {
@@ -84,12 +85,12 @@ func Find(root, name string, isDir bool) (string, error) {
 	}
 	err := filepath.Walk(root, walkFn)
 	if err != nil {
-		return "", err
+		return false, "", err
 	}
 	if p == "" {
-		return "", fmt.Errorf("%s is not found in %s", name, root)
+		return false, "", nil
 	}
-	return p, nil
+	return true, p, nil
 }
 
 // DirNames 获取目录下的目录名列表

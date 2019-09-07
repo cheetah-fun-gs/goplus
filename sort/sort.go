@@ -1,3 +1,4 @@
+// Package sort 排序方法, 不推荐使用
 package sort
 
 import "sort"

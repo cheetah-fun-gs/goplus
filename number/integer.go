@@ -1,3 +1,4 @@
+// Package number 浮点, 整形方法
 package number
 
 // MinIndex 最小值 和 位置

@@ -1,3 +1,4 @@
+// Package rand 随机方法
 package rand
 
 import (
