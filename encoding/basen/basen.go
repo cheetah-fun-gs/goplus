@@ -1,8 +1,9 @@
-// Package basen 将任意数据按指定的字符集编码成可见字符
+// Package basen 将任意数据按指定的字符集编码成可见字符 如 base62
+package basen
+
 // 算法思路：
 // 1. 根据字符集的数量，算出每8个字节需要多少个字符表示
 // 2. 余数的值加在最后一位
-package basen
 
 import (
 	"fmt"

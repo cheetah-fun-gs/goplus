@@ -1,3 +1,4 @@
+// Package strings 字符串方法, 不推荐使用
 package strings
 
 import "strings"

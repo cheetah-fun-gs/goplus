@@ -1,3 +1,4 @@
+// Package filepath 路径, 目录, 文件名方法
 package filepath
 
 import (

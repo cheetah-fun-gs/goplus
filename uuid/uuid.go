@@ -1,3 +1,4 @@
+// Package uuid google uuid更方便的二次封装, 含uuid4和uuid5两种算法, 以及md5, base62, base64三种格式
 package uuid
 
 import (
