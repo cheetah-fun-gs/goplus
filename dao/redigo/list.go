@@ -148,16 +148,22 @@ func LRange(conn redigo.Conn, key string, start, stop int, value interface{}) er
 
 func strListToStr(strList []string) (string, error) {
 	var buffer bytes.Buffer
-	size := len(strList)
-	for i, v := range strList {
+
+	for _, v := range strList {
 		if v == `""` || v == "" {
 			continue
 		}
 		buffer.WriteString(v)
-		if i != size-1 {
-			buffer.WriteString(",")
-		}
+
+		buffer.WriteString(",")
+
 	}
 
-	return fmt.Sprintf("[%s]", buffer.String()), nil
+	valStr := buffer.String()
+	// 去掉最后的","
+	if len(valStr) > 0 {
+		valStr = valStr[:len(valStr)-1]
+	}
+
+	return fmt.Sprintf("[%s]", valStr), nil
 }
