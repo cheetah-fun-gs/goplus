@@ -72,7 +72,7 @@ func Dirs(root string) ([]string, error) {
 }
 
 // Find 遍历文件夹，查找指定路径
-func Find(root, name string, isDir bool) (bool, string, error) {
+func Find(root, name string, isDir bool) (string, error) {
 	p := ""
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if info == nil {
@@ -85,12 +85,12 @@ func Find(root, name string, isDir bool) (bool, string, error) {
 	}
 	err := filepath.Walk(root, walkFn)
 	if err != nil {
-		return false, "", err
+		return "", err
 	}
 	if p == "" {
-		return false, "", nil
+		return "", fmt.Errorf("not found")
 	}
-	return true, p, nil
+	return p, nil
 }
 
 // DirNames 获取目录下的目录名列表
