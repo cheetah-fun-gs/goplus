@@ -109,3 +109,35 @@ func GetJSON(url string, response interface{}) error {
 	}
 	return nil
 }
+
+// PostJSON 用post方式获取json返回
+func PostJSON(url string, response interface{}) error {
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", url, strings.NewReader(""))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("%s", resp.Status)
+	}
+
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bodyBytes, response)
+	if err != nil {
+		return err
+	}
+	return nil
+}
