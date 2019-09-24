@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"strings"
 
+	"github.com/cheetah-fun-gs/goplus/encoding/basen"
 	"github.com/google/uuid"
-	"gitlab.liebaopay.com/mikezhang/goplus/encoding/basen"
 )
 
 // md5 to xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx

@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"gitlab.liebaopay.com/mikezhang/goplus/number"
+	"github.com/cheetah-fun-gs/goplus/number"
 )
 
 func randintInter(s rand.Source, m, n int) int {

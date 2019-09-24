@@ -5,7 +5,7 @@ import (
 	"time"
 
 	redigo "github.com/gomodule/redigo/redis"
-	uuidplus "gitlab.liebaopay.com/mikezhang/goplus/uuid"
+	uuidplus "github.com/cheetah-fun-gs/goplus/uuid"
 )
 
 // ErrorLocked 错误: 已锁

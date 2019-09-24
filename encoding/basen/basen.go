@@ -10,10 +10,10 @@ import (
 	"math"
 	"strings"
 
-	"gitlab.liebaopay.com/mikezhang/goplus/encoding/binary"
-	"gitlab.liebaopay.com/mikezhang/goplus/number"
+	"github.com/cheetah-fun-gs/goplus/encoding/binary"
+	"github.com/cheetah-fun-gs/goplus/number"
 
-	stringsplus "gitlab.liebaopay.com/mikezhang/goplus/strings"
+	stringsplus "github.com/cheetah-fun-gs/goplus/strings"
 )
 
 // 字符集
