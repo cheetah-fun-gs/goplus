@@ -175,12 +175,12 @@ func CopyFileAndReplace(src, dst string, replaces []*ReplaceOption) error {
 	}
 	defer srcFile.Close()
 
-	bytes, err := ioutil.ReadAll(srcFile)
+	data, err := ioutil.ReadAll(srcFile)
 	if err != nil {
 		return err
 	}
 
-	text := string(bytes)
+	text := string(data)
 	for _, r := range replaces {
 		if !r.IsRegexp {
 			text = strings.Replace(text, r.Old, r.New, -1)
