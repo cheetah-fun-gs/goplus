@@ -1,28 +1,79 @@
+// Package sql 对sql封装 支持在执行sql前后添加钩子
+// 注意：如果在钩子里也有sql操作，注意不要死循环了
 package sql
 
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strconv"
+
+	"github.com/knocknote/vitess-sqlparser/sqlparser"
 )
 
+func preHookSafe(ctx context.Context, queryStmt sqlparser.Statement, queryStr string, args []interface{}) error {
+	maxLimitCount := 2000
+
+	switch v := queryStmt.(type) {
+	case *sqlparser.Select:
+		if _, ok := v.SelectExprs[0].(*sqlparser.StarExpr); ok {
+			return fmt.Errorf("select must have column name, not allow *")
+		}
+		if v.Limit == nil {
+			return fmt.Errorf("select must have limit")
+		}
+		limitCount, _ := strconv.Atoi(sqlparser.String(v.Limit.Rowcount))
+		if limitCount >= maxLimitCount {
+			return fmt.Errorf("select limit must less than %d", maxLimitCount)
+		}
+	case *sqlparser.Insert:
+		if len(v.Columns) == 0 {
+			return fmt.Errorf("insert must have column name")
+		}
+	case *sqlparser.Update:
+		if v.Where == nil {
+			return fmt.Errorf("update must have where")
+		}
+		if v.Limit == nil {
+			return fmt.Errorf("update must have limit")
+		}
+		limitCount, _ := strconv.Atoi(sqlparser.String(v.Limit.Rowcount))
+		if limitCount >= maxLimitCount {
+			return fmt.Errorf("update limit must less than %d", maxLimitCount)
+		}
+	case *sqlparser.Delete:
+		if v.Where == nil {
+			return fmt.Errorf("delete must have where")
+		}
+		if v.Limit == nil {
+			return fmt.Errorf("delete must have limit")
+		}
+		limitCount, _ := strconv.Atoi(sqlparser.String(v.Limit.Rowcount))
+		if limitCount >= maxLimitCount {
+			return fmt.Errorf("delete limit must less than %d", maxLimitCount)
+		}
+	}
+	return nil
+}
+
 // PreHook 前置钩子 err 非空会中断
-type PreHook func(ctx context.Context, query string, args []interface{}) error
+type PreHook func(ctx context.Context, queryStmt sqlparser.Statement, queryStr string, args []interface{}) error
 
 // PostHook 后置钩子 不中断
-type PostHook func(ctx context.Context, query string, args []interface{}, result sql.Result)
+type PostHook func(ctx context.Context, queryStmt sqlparser.Statement, queryStr string, args []interface{}, result sql.Result)
 
-func loopPreHook(ctx context.Context, hooks []PreHook, query string, args []interface{}) error {
+func loopPreHook(ctx context.Context, hooks []PreHook, queryStmt sqlparser.Statement, queryStr string, args []interface{}) error {
 	for _, hook := range hooks {
-		if err := hook(ctx, query, args); err != nil {
+		if err := hook(ctx, queryStmt, queryStr, args); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func loopPostHook(ctx context.Context, hooks []PostHook, query string, args []interface{}, result sql.Result) {
+func loopPostHook(ctx context.Context, hooks []PostHook, queryStmt sqlparser.Statement, queryStr string, args []interface{}, result sql.Result) {
 	for _, hook := range hooks {
-		hook(ctx, query, args, result)
+		hook(ctx, queryStmt, queryStr, args, result)
 	}
 	return
 }
@@ -34,6 +85,17 @@ func Open(driverName, dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 	return &DB{DB: db}, nil
+}
+
+// OpenSafe OpenSafe 禁止 select * from 和 insert ino table values 等未指定列名的sql语句
+func OpenSafe(driverName, dataSourceName string) (*DB, error) {
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	d := &DB{DB: db}
+	d.RegisterPreHook(preHookSafe)
+	return d, nil
 }
 
 // DB sql plus
@@ -60,14 +122,23 @@ func (db *DB) Exec(query string, args []interface{}) (sql.Result, error) {
 
 // ExecContext ExecContext
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	if err := loopPreHook(ctx, db.preHooks, query, args); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(db.preHooks) != 0 || len(db.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := loopPreHook(ctx, db.preHooks, queryStmt, query, args); err != nil {
 		return nil, err
 	}
 	result, err := db.DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		return result, err
 	}
-	loopPostHook(ctx, db.postHooks, query, args, result)
+	loopPostHook(ctx, db.postHooks, queryStmt, query, args, result)
 	return result, nil
 }
 
@@ -78,13 +149,23 @@ func (db *DB) Prepare(query string) (*Stmt, error) {
 
 // PrepareContext PrepareContext
 func (db *DB) PrepareContext(ctx context.Context, query string) (*Stmt, error) {
-	if err := loopPreHook(ctx, db.preHooks, query, nil); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(db.preHooks) != 0 || len(db.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := loopPreHook(ctx, db.preHooks, queryStmt, query, nil); err != nil {
 		return nil, err
 	}
 	stmt, err := db.DB.PrepareContext(ctx, query)
 	return &Stmt{
 		Stmt:      stmt,
-		QuerySQL:  query,
+		queryStr:  query,
+		queryStmt: queryStmt,
 		preHooks:  db.preHooks,
 		postHooks: db.postHooks,
 	}, err
@@ -97,14 +178,23 @@ func (db *DB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 
 // QueryContext QueryContext
 func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if err := loopPreHook(ctx, db.preHooks, query, args); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(db.preHooks) != 0 || len(db.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := loopPreHook(ctx, db.preHooks, queryStmt, query, args); err != nil {
 		return nil, err
 	}
 	rows, err := db.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return rows, err
 	}
-	loopPostHook(ctx, db.postHooks, query, args, nil)
+	loopPostHook(ctx, db.postHooks, queryStmt, query, args, nil)
 	return rows, nil
 }
 
@@ -129,11 +219,20 @@ func (db *DB) QueryRow(query string, args ...interface{}) *Row {
 
 // QueryRowContext QueryRowContext
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *Row {
-	if err := loopPreHook(ctx, db.preHooks, query, args); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(db.preHooks) != 0 || len(db.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return &Row{err: err, Row: nil}
+		}
+	}
+
+	if err := loopPreHook(ctx, db.preHooks, queryStmt, query, args); err != nil {
 		return &Row{err: err, Row: nil}
 	}
 	row := db.DB.QueryRowContext(ctx, query, args...)
-	loopPostHook(ctx, db.postHooks, query, args, nil)
+	loopPostHook(ctx, db.postHooks, queryStmt, query, args, nil)
 	return &Row{err: nil, Row: row}
 }
 
@@ -155,7 +254,8 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 // Stmt plus
 type Stmt struct {
 	*sql.Stmt
-	QuerySQL  string
+	queryStmt sqlparser.Statement
+	queryStr  string
 	preHooks  []PreHook
 	postHooks []PostHook
 }
@@ -171,7 +271,8 @@ func (s *Stmt) ExecContext(ctx context.Context, args ...interface{}) (sql.Result
 	if err != nil {
 		return result, err
 	}
-	loopPostHook(ctx, s.postHooks, s.QuerySQL, args, result)
+
+	loopPostHook(ctx, s.postHooks, s.queryStmt, s.queryStr, args, result)
 	return result, nil
 }
 
@@ -186,7 +287,7 @@ func (s *Stmt) QueryContext(ctx context.Context, args ...interface{}) (*sql.Rows
 	if err != nil {
 		return rows, err
 	}
-	loopPostHook(ctx, s.postHooks, s.QuerySQL, args, nil)
+	loopPostHook(ctx, s.postHooks, s.queryStmt, s.queryStr, args, nil)
 	return rows, nil
 }
 
@@ -198,7 +299,7 @@ func (s *Stmt) QueryRow(args ...interface{}) *Row {
 // QueryRowContext QueryRowContext
 func (s *Stmt) QueryRowContext(ctx context.Context, args ...interface{}) *Row {
 	row := s.Stmt.QueryRowContext(ctx, args...)
-	loopPostHook(ctx, s.postHooks, s.QuerySQL, args, nil)
+	loopPostHook(ctx, s.postHooks, s.queryStmt, s.queryStr, args, nil)
 	return &Row{err: nil, Row: row}
 }
 
@@ -216,14 +317,23 @@ func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
 
 // ExecContext ExecContext
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	if err := loopPreHook(ctx, tx.preHooks, query, args); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(tx.preHooks) != 0 || len(tx.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := loopPreHook(ctx, tx.preHooks, queryStmt, query, args); err != nil {
 		return nil, err
 	}
 	result, err := tx.Tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return result, err
 	}
-	loopPostHook(ctx, tx.postHooks, query, args, result)
+	loopPostHook(ctx, tx.postHooks, queryStmt, query, args, result)
 	return result, nil
 }
 
@@ -234,13 +344,22 @@ func (tx *Tx) Prepare(query string) (*Stmt, error) {
 
 // PrepareContext PrepareContext
 func (tx *Tx) PrepareContext(ctx context.Context, query string) (*Stmt, error) {
-	if err := loopPreHook(ctx, tx.preHooks, query, nil); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(tx.preHooks) != 0 || len(tx.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := loopPreHook(ctx, tx.preHooks, queryStmt, query, nil); err != nil {
 		return nil, err
 	}
 	stmt, err := tx.Tx.PrepareContext(ctx, query)
 	return &Stmt{
 		Stmt:      stmt,
-		QuerySQL:  query,
+		queryStmt: queryStmt,
 		preHooks:  tx.preHooks,
 		postHooks: tx.postHooks,
 	}, err
@@ -253,14 +372,23 @@ func (tx *Tx) Query(query string, args ...interface{}) (*sql.Rows, error) {
 
 // QueryContext QueryContext
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	if err := loopPreHook(ctx, tx.preHooks, query, args); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(tx.preHooks) != 0 || len(tx.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := loopPreHook(ctx, tx.preHooks, queryStmt, query, args); err != nil {
 		return nil, err
 	}
 	rows, err := tx.Tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return rows, err
 	}
-	loopPostHook(ctx, tx.postHooks, query, args, nil)
+	loopPostHook(ctx, tx.postHooks, queryStmt, query, args, nil)
 	return rows, nil
 }
 
@@ -271,10 +399,19 @@ func (tx *Tx) QueryRow(query string, args ...interface{}) *Row {
 
 // QueryRowContext QueryRowContext
 func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *Row {
-	if err := loopPreHook(ctx, tx.preHooks, query, args); err != nil {
+	var queryStmt sqlparser.Statement
+	var err error
+	if len(tx.preHooks) != 0 || len(tx.postHooks) != 0 {
+		queryStmt, err = sqlparser.Parse(query)
+		if err != nil {
+			return &Row{err: err, Row: nil}
+		}
+	}
+
+	if err := loopPreHook(ctx, tx.preHooks, queryStmt, query, args); err != nil {
 		return &Row{err: err, Row: nil}
 	}
 	row := tx.Tx.QueryRowContext(ctx, query, args...)
-	loopPostHook(ctx, tx.postHooks, query, args, nil)
+	loopPostHook(ctx, tx.postHooks, queryStmt, query, args, nil)
 	return &Row{err: nil, Row: row}
 }
