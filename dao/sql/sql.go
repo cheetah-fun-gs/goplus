@@ -6,25 +6,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strconv"
 
 	"github.com/knocknote/vitess-sqlparser/sqlparser"
 )
 
 func preHookSafe(ctx context.Context, queryStmt sqlparser.Statement, queryStr string, args []interface{}) error {
-	maxLimitCount := 2000
-
 	switch v := queryStmt.(type) {
 	case *sqlparser.Select:
 		if _, ok := v.SelectExprs[0].(*sqlparser.StarExpr); ok {
 			return fmt.Errorf("select must have column name, not allow *")
-		}
-		if v.Limit == nil {
-			return fmt.Errorf("select must have limit")
-		}
-		limitCount, _ := strconv.Atoi(sqlparser.String(v.Limit.Rowcount))
-		if limitCount >= maxLimitCount {
-			return fmt.Errorf("select limit must less than %d", maxLimitCount)
 		}
 	case *sqlparser.Insert:
 		if len(v.Columns) == 0 {
@@ -34,23 +24,9 @@ func preHookSafe(ctx context.Context, queryStmt sqlparser.Statement, queryStr st
 		if v.Where == nil {
 			return fmt.Errorf("update must have where")
 		}
-		if v.Limit == nil {
-			return fmt.Errorf("update must have limit")
-		}
-		limitCount, _ := strconv.Atoi(sqlparser.String(v.Limit.Rowcount))
-		if limitCount >= maxLimitCount {
-			return fmt.Errorf("update limit must less than %d", maxLimitCount)
-		}
 	case *sqlparser.Delete:
 		if v.Where == nil {
 			return fmt.Errorf("delete must have where")
-		}
-		if v.Limit == nil {
-			return fmt.Errorf("delete must have limit")
-		}
-		limitCount, _ := strconv.Atoi(sqlparser.String(v.Limit.Rowcount))
-		if limitCount >= maxLimitCount {
-			return fmt.Errorf("delete limit must less than %d", maxLimitCount)
 		}
 	}
 	return nil
