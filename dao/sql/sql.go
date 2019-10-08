@@ -288,7 +288,7 @@ type Tx struct {
 
 // Exec Exec
 func (tx *Tx) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return tx.ExecContext(context.Background(), query, args)
+	return tx.ExecContext(context.Background(), query, args...)
 }
 
 // ExecContext ExecContext
