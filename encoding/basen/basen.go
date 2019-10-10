@@ -112,7 +112,11 @@ func (e *Encoder) Encode(in []byte) string {
 			b = in[offset:]
 			last = true
 		}
-		s := e.decimalToAny(binary.ByteToUint64(b))
+		bb, err := binary.ByteToUint64(b)
+		if err != nil {
+			panic(err)
+		}
+		s := e.decimalToAny(bb)
 		if len(s) < e.CharNum && !last {
 			s = fillChar(s, e.Charset[0], e.CharNum-len(s))
 		} else if len(s) > e.CharNum {
@@ -154,7 +158,10 @@ func (e *Encoder) Decode(in string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		b := binary.Uint64ToByte(bUnit64)
+		b, err := binary.Uint64ToByte(bUnit64)
+		if err != nil {
+			return nil, err
+		}
 		if last {
 			b = b[len(b)-remainder:]
 		}
