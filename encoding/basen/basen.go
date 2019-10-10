@@ -12,14 +12,22 @@ import (
 
 	"github.com/cheetah-fun-gs/goplus/encoding/binary"
 	"github.com/cheetah-fun-gs/goplus/number"
-
-	stringsplus "github.com/cheetah-fun-gs/goplus/strings"
 )
 
 // 字符集
 const (
 	CharsetBase62 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 )
+
+func fillChar(in string, char string, n int) string {
+	inSplit := strings.Split(in, "")
+	out := []string{}
+	for i := 0; i < n; i++ {
+		out = append(out, char)
+	}
+	out = append(out, inSplit...)
+	return strings.Join(out, "")
+}
 
 // Encoder 编码器
 type Encoder struct {
@@ -104,9 +112,13 @@ func (e *Encoder) Encode(in []byte) string {
 			b = in[offset:]
 			last = true
 		}
-		s := e.decimalToAny(binary.ByteToUint64(b))
+		bb, err := binary.ByteToUint64(b)
+		if err != nil {
+			panic(err)
+		}
+		s := e.decimalToAny(bb)
 		if len(s) < e.CharNum && !last {
-			s = stringsplus.StringFillLeft(s, e.Charset[0], e.CharNum-len(s))
+			s = fillChar(s, e.Charset[0], e.CharNum-len(s))
 		} else if len(s) > e.CharNum {
 			panic("decimalToAny length more than CharNum")
 		}
@@ -146,7 +158,10 @@ func (e *Encoder) Decode(in string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		b := binary.Uint64ToByte(bUnit64)
+		b, err := binary.Uint64ToByte(bUnit64)
+		if err != nil {
+			return nil, err
+		}
 		if last {
 			b = b[len(b)-remainder:]
 		}

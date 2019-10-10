@@ -69,8 +69,8 @@ func (u *UUID) String() string {
 	return string(buf[:])
 }
 
-// GenerateUUID5 生成 UUID version 5
-func GenerateUUID5(nameSpace string, key string) UUID {
+// NewV5 生成 UUID version 5
+func NewV5(nameSpace string, key string) UUID {
 	nameSpaceUUID, err := uuid.Parse(md5ToUUIDString(calMD5(nameSpace)))
 	if err != nil {
 		panic(err)
@@ -83,8 +83,8 @@ func GenerateUUID5(nameSpace string, key string) UUID {
 	return UUID(b)
 }
 
-// GenerateUUID4 生成 UUID version 4
-func GenerateUUID4() UUID {
+// NewV4 生成 UUID version 4
+func NewV4() UUID {
 	u := uuid.New()
 	b, err := u.MarshalBinary()
 	if err != nil {
