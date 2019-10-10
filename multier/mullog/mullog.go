@@ -45,22 +45,22 @@ func Register(key string, logger Logger) error {
 
 // Debug Debug
 func Debug(ctx context.Context, format string, v ...interface{}) {
-	mutil[d].Debug(ctx, format, v...)
+	DebugK(ctx, d, format, v...)
 }
 
 // Info Info
 func Info(ctx context.Context, format string, v ...interface{}) {
-	mutil[d].Info(ctx, format, v...)
+	InfoK(ctx, d, format, v...)
 }
 
 // Warn Warn
 func Warn(ctx context.Context, format string, v ...interface{}) {
-	mutil[d].Warn(ctx, format, v...)
+	WarnK(ctx, d, format, v...)
 }
 
 // Error Error
 func Error(ctx context.Context, format string, v ...interface{}) {
-	mutil[d].Error(ctx, format, v...)
+	ErrorK(ctx, d, format, v...)
 }
 
 // DebugK Debug with key
