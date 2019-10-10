@@ -24,23 +24,23 @@ func InitConn(defaultConn redigo.Conn) {
 }
 
 // RegisterConn 注册连接池
-func RegisterConn(key string, pool redigo.Conn) error {
-	if _, ok := mConn[key]; ok {
-		return fmt.Errorf("duplicate key: %v", key)
+func RegisterConn(name string, pool redigo.Conn) error {
+	if _, ok := mConn[name]; ok {
+		return fmt.Errorf("duplicate name: %v", name)
 	}
-	mConn[key] = pool
+	mConn[name] = pool
 	return nil
 }
 
 // GetConn 获取连接池
 func GetConn() (redigo.Conn, error) {
-	return GetConnK(d)
+	return GetConnN(d)
 }
 
-// GetConnK get pool with key 获取连接池
-func GetConnK(key string) (redigo.Conn, error) {
-	if pool, ok := mConn[key]; ok {
+// GetConnN get pool with name 获取连接池
+func GetConnN(name string) (redigo.Conn, error) {
+	if pool, ok := mConn[name]; ok {
 		return pool, nil
 	}
-	return nil, fmt.Errorf("key not found: %v", key)
+	return nil, fmt.Errorf("name not found: %v", name)
 }

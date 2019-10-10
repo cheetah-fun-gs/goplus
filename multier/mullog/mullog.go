@@ -35,58 +35,58 @@ func Init(defaultLogger Logger) {
 }
 
 // Register 注册日志器
-func Register(key string, logger Logger) error {
-	if _, ok := mutil[key]; ok {
-		return fmt.Errorf("duplicate key: %v", key)
+func Register(name string, logger Logger) error {
+	if _, ok := mutil[name]; ok {
+		return fmt.Errorf("duplicate name: %v", name)
 	}
-	mutil[key] = logger
+	mutil[name] = logger
 	return nil
 }
 
 // Debug Debug
 func Debug(ctx context.Context, format string, v ...interface{}) {
-	DebugK(ctx, d, format, v...)
+	DebugN(ctx, d, format, v...)
 }
 
 // Info Info
 func Info(ctx context.Context, format string, v ...interface{}) {
-	InfoK(ctx, d, format, v...)
+	InfoN(ctx, d, format, v...)
 }
 
 // Warn Warn
 func Warn(ctx context.Context, format string, v ...interface{}) {
-	WarnK(ctx, d, format, v...)
+	WarnN(ctx, d, format, v...)
 }
 
 // Error Error
 func Error(ctx context.Context, format string, v ...interface{}) {
-	ErrorK(ctx, d, format, v...)
+	ErrorN(ctx, d, format, v...)
 }
 
-// DebugK Debug with key
-func DebugK(ctx context.Context, key, format string, v ...interface{}) {
-	if logger, ok := mutil[key]; ok {
+// DebugN Debug with name
+func DebugN(ctx context.Context, name, format string, v ...interface{}) {
+	if logger, ok := mutil[name]; ok {
 		logger.Debug(ctx, format, v...)
 	}
 }
 
-// InfoK Info with key
-func InfoK(ctx context.Context, key, format string, v ...interface{}) {
-	if logger, ok := mutil[key]; ok {
+// InfoN Info with name
+func InfoN(ctx context.Context, name, format string, v ...interface{}) {
+	if logger, ok := mutil[name]; ok {
 		logger.Info(ctx, format, v...)
 	}
 }
 
-// WarnK Warn with key
-func WarnK(ctx context.Context, key, format string, v ...interface{}) {
-	if logger, ok := mutil[key]; ok {
+// WarnN Warn with name
+func WarnN(ctx context.Context, name, format string, v ...interface{}) {
+	if logger, ok := mutil[name]; ok {
 		logger.Warn(ctx, format, v...)
 	}
 }
 
-// ErrorK Error with key
-func ErrorK(ctx context.Context, key, format string, v ...interface{}) {
-	if logger, ok := mutil[key]; ok {
+// ErrorN Error with name
+func ErrorN(ctx context.Context, name, format string, v ...interface{}) {
+	if logger, ok := mutil[name]; ok {
 		logger.Error(ctx, format, v...)
 	}
 }

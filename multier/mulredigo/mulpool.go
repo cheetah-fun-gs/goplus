@@ -28,23 +28,23 @@ func InitPool(defaultPool *redigo.Pool) {
 }
 
 // RegisterPool 注册连接池
-func RegisterPool(key string, pool *redigo.Pool) error {
-	if _, ok := mPool[key]; ok {
-		return fmt.Errorf("duplicate key: %v", key)
+func RegisterPool(name string, pool *redigo.Pool) error {
+	if _, ok := mPool[name]; ok {
+		return fmt.Errorf("duplicate name: %v", name)
 	}
-	mPool[key] = pool
+	mPool[name] = pool
 	return nil
 }
 
 // GetPool 获取连接池
 func GetPool() (*redigo.Pool, error) {
-	return GetPoolK(d)
+	return GetPoolN(d)
 }
 
-// GetPoolK get pool with key 获取连接池
-func GetPoolK(key string) (*redigo.Pool, error) {
-	if pool, ok := mPool[key]; ok {
+// GetPoolN get pool with name 获取连接池
+func GetPoolN(name string) (*redigo.Pool, error) {
+	if pool, ok := mPool[name]; ok {
 		return pool, nil
 	}
-	return nil, fmt.Errorf("key not found: %v", key)
+	return nil, fmt.Errorf("name not found: %v", name)
 }
