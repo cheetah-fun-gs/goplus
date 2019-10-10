@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	redigo "github.com/gomodule/redigo/redis"
 	uuidplus "github.com/cheetah-fun-gs/goplus/uuid"
+	redigo "github.com/gomodule/redigo/redis"
 )
 
 // ErrorLocked 错误: 已锁
@@ -41,7 +41,7 @@ func NewLocker(pool *redigo.Pool, name string, millisecond int) (*Locker, error)
 		millisecond = 200
 	}
 
-	uid := uuidplus.GenerateUUID4()
+	uid := uuidplus.NewV4()
 	ticker := time.NewTicker(time.Duration(millisecond) * time.Millisecond)
 
 	locker := &Locker{
