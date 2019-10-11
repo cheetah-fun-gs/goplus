@@ -1,8 +1,7 @@
 package viper
 
 import (
-	"encoding/json"
-
+	"github.com/cheetah-fun-gs/goplus/structure"
 	"github.com/spf13/viper"
 )
 
@@ -71,12 +70,7 @@ func (vip *Viper) GetStruct(key string, v interface{}) (ok bool, err error) {
 		return false, nil
 	}
 
-	jsonByte, err := json.Marshal(data)
-	if err != nil {
-		return false, err
-	}
-
-	if err := json.Unmarshal(jsonByte, v); err != nil {
+	if err := structure.MapToStruct(data, v); err != nil {
 		return false, err
 	}
 
