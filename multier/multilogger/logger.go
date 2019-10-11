@@ -1,24 +1,18 @@
-package multilog
+package multilogger
 
 import (
 	"context"
 	"fmt"
 	"sync"
+
+	logger "github.com/cheetah-fun-gs/goplus/logger"
 )
 
 const (
 	d = "default"
 )
 
-// Logger 日志器
-type Logger interface {
-	Debug(ctx context.Context, format string, v ...interface{})
-	Info(ctx context.Context, format string, v ...interface{})
-	Warn(ctx context.Context, format string, v ...interface{})
-	Error(ctx context.Context, format string, v ...interface{})
-}
-
-type mutilLogger map[string]Logger
+type mutilLogger map[string]logger.Logger
 
 var (
 	once  sync.Once
@@ -26,7 +20,7 @@ var (
 )
 
 // Init 初始化
-func Init(defaultLogger Logger) {
+func Init(defaultLogger logger.Logger) {
 	once.Do(func() {
 		mutil = mutilLogger{
 			d: defaultLogger,
@@ -35,7 +29,7 @@ func Init(defaultLogger Logger) {
 }
 
 // Register 注册日志器
-func Register(name string, logger Logger) error {
+func Register(name string, logger logger.Logger) error {
 	if _, ok := mutil[name]; ok {
 		return fmt.Errorf("duplicate name: %v", name)
 	}
