@@ -1,4 +1,4 @@
-package mulredigo
+package multimgo
 
 import (
 	"fmt"

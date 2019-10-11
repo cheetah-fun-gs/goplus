@@ -1,4 +1,4 @@
-package mullog
+package multilog
 
 import (
 	"context"

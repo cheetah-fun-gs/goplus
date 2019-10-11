@@ -1,4 +1,4 @@
-package mullog
+package multiconfig
 
 import (
 	"fmt"

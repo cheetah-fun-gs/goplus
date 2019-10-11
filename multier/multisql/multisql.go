@@ -1,4 +1,4 @@
-package mulsql
+package multisql
 
 import (
 	"context"
@@ -16,14 +16,14 @@ const (
 type mutilDB map[string]sqlplus.DB
 
 var (
-	once  sync.Once
-	mutil mutilDB
+	once sync.Once
+	mDB  mutilDB
 )
 
 // Init 初始化
 func Init(defaultDB sqlplus.DB) {
 	once.Do(func() {
-		mutil = mutilDB{
+		mDB = mutilDB{
 			d: defaultDB,
 		}
 	})
@@ -31,10 +31,10 @@ func Init(defaultDB sqlplus.DB) {
 
 // Register 注册 sql db
 func Register(name string, db sqlplus.DB) error {
-	if _, ok := mutil[name]; ok {
+	if _, ok := mDB[name]; ok {
 		return fmt.Errorf("duplicate name: %v", name)
 	}
-	mutil[name] = db
+	mDB[name] = db
 	return nil
 }
 
@@ -45,7 +45,7 @@ func GetDB() (sqlplus.DB, error) {
 
 // GetDBN ...
 func GetDBN(name string) (sqlplus.DB, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db, nil
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -108,7 +108,7 @@ func Stats() sql.DBStats {
 
 // BeginN ...
 func BeginN(name string) (sqlplus.Tx, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.Begin()
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -116,7 +116,7 @@ func BeginN(name string) (sqlplus.Tx, error) {
 
 // BeginTxN ...
 func BeginTxN(ctx context.Context, name string, opts *sql.TxOptions) (sqlplus.Tx, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.BeginTx(ctx, opts)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -124,7 +124,7 @@ func BeginTxN(ctx context.Context, name string, opts *sql.TxOptions) (sqlplus.Tx
 
 // ExecN ...
 func ExecN(name, query string, args ...interface{}) (sql.Result, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.Exec(query, args...)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -132,7 +132,7 @@ func ExecN(name, query string, args ...interface{}) (sql.Result, error) {
 
 // ExecContextN ...
 func ExecContextN(ctx context.Context, name, query string, args ...interface{}) (sql.Result, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.ExecContext(ctx, query, args...)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -140,7 +140,7 @@ func ExecContextN(ctx context.Context, name, query string, args ...interface{}) 
 
 // PrepareN ...
 func PrepareN(name, query string) (sqlplus.Stmt, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.Prepare(query)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -148,7 +148,7 @@ func PrepareN(name, query string) (sqlplus.Stmt, error) {
 
 // PrepareContextN ...
 func PrepareContextN(ctx context.Context, name, query string) (sqlplus.Stmt, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.PrepareContext(ctx, query)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -156,7 +156,7 @@ func PrepareContextN(ctx context.Context, name, query string) (sqlplus.Stmt, err
 
 // QueryN ...
 func QueryN(name, query string, args ...interface{}) (sqlplus.Rows, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.Query(query, args...)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -164,7 +164,7 @@ func QueryN(name, query string, args ...interface{}) (sqlplus.Rows, error) {
 
 // QueryContextN ...
 func QueryContextN(ctx context.Context, name, query string, args ...interface{}) (sqlplus.Rows, error) {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.QueryContext(ctx, query, args...)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -172,7 +172,7 @@ func QueryContextN(ctx context.Context, name, query string, args ...interface{})
 
 // QueryRowN ...
 func QueryRowN(name, query string, args ...interface{}) sqlplus.Row {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.QueryRow(query, args...)
 	}
 	return &sqlplus.ErrRow{Err: fmt.Errorf("name not found: %v", name)}
@@ -180,7 +180,7 @@ func QueryRowN(name, query string, args ...interface{}) sqlplus.Row {
 
 // QueryRowContextN ...
 func QueryRowContextN(ctx context.Context, name, query string, args ...interface{}) sqlplus.Row {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.QueryRowContext(ctx, query, args...)
 	}
 	return &sqlplus.ErrRow{Err: fmt.Errorf("name not found: %v", name)}
@@ -188,7 +188,7 @@ func QueryRowContextN(ctx context.Context, name, query string, args ...interface
 
 // StatsN ...
 func StatsN(name string) sql.DBStats {
-	if db, ok := mutil[name]; ok {
+	if db, ok := mDB[name]; ok {
 		return db.Stats()
 	}
 	return sql.DBStats{}
