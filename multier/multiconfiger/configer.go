@@ -1,29 +1,17 @@
-package multiconfig
+package multiconfiger
 
 import (
 	"fmt"
 	"sync"
+
+	configer "github.com/cheetah-fun-gs/goplus/configer"
 )
 
 const (
 	d = "default"
 )
 
-// Configer 配置器
-type Configer interface {
-	Get(key string) (ok bool, val interface{}, err error)
-	GetBool(key string) (ok bool, val bool, err error)
-	GetInt(key string) (ok bool, val int, err error)
-	GetString(key string) (ok bool, val string, err error)
-	GetMap(key string) (ok bool, val map[string]interface{}, err error)
-	GetStruct(key string, v interface{}) (ok bool, err error)
-	GetBoolD(key string, def bool) bool
-	GetIntD(key string, def int) int
-	GetStringD(key string, def string) string
-	GetMapD(key string, def map[string]interface{}) map[string]interface{}
-}
-
-type mutilConfiger map[string]Configer
+type mutilConfiger map[string]configer.Configer
 
 var (
 	once  sync.Once
@@ -31,7 +19,7 @@ var (
 )
 
 // Init 初始化
-func Init(defaultConfiger Configer) {
+func Init(defaultConfiger configer.Configer) {
 	once.Do(func() {
 		mutil = mutilConfiger{
 			d: defaultConfiger,
@@ -40,7 +28,7 @@ func Init(defaultConfiger Configer) {
 }
 
 // Register 注册配置器
-func Register(name string, configer Configer) error {
+func Register(name string, configer configer.Configer) error {
 	if _, ok := mutil[name]; ok {
 		return fmt.Errorf("duplicate name: %v", name)
 	}
