@@ -20,8 +20,8 @@ var (
 	mDB  mutilDB
 )
 
-// Init 初始化
-func Init(defaultDB sqlplus.DB) {
+// InitDB 初始化db
+func InitDB(defaultDB sqlplus.DB) {
 	once.Do(func() {
 		mDB = mutilDB{
 			d: defaultDB,
@@ -29,8 +29,8 @@ func Init(defaultDB sqlplus.DB) {
 	})
 }
 
-// Register 注册 sql db
-func Register(name string, db sqlplus.DB) error {
+// RegisterDB 注册 sql db
+func RegisterDB(name string, db sqlplus.DB) error {
 	if _, ok := mDB[name]; ok {
 		return fmt.Errorf("duplicate name: %v", name)
 	}
