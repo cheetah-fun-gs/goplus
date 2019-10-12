@@ -27,16 +27,16 @@ type Interceptor struct {
 	behindExeces []BehindExec
 }
 
-// New ...
-func New() *Interceptor {
+// NewInterceptor ...
+func NewInterceptor() *Interceptor {
 	return &Interceptor{
 		beforeExeces: []BeforeExec{},
 		behindExeces: []BehindExec{},
 	}
 }
 
-// NewSafe ...
-func NewSafe() *Interceptor {
+// NewSafeInterceptor ...
+func NewSafeInterceptor() *Interceptor {
 	in := &Interceptor{
 		beforeExeces: []BeforeExec{},
 		behindExeces: []BehindExec{},
