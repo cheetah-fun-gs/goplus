@@ -24,8 +24,8 @@ var (
 	mutil mutilDB
 )
 
-// InitDB 初始化db
-func InitDB(defaultDB *sql.DB) {
+// Init 初始化db
+func Init(defaultDB *sql.DB) {
 	once.Do(func() {
 		mutil = mutilDB{
 			d: &dbWithInterceptor{
@@ -35,8 +35,8 @@ func InitDB(defaultDB *sql.DB) {
 	})
 }
 
-// RegisterDB 注册 sql db
-func RegisterDB(name string, db *sql.DB) error {
+// Register 注册 sql db
+func Register(name string, db *sql.DB) error {
 	if _, ok := mutil[name]; ok {
 		return fmt.Errorf("duplicate name: %v", name)
 	}
@@ -46,8 +46,8 @@ func RegisterDB(name string, db *sql.DB) error {
 	return nil
 }
 
-// InitDBWithInterceptor 初始化db
-func InitDBWithInterceptor(defaultDB *sql.DB, in *sqlplus.Interceptor) {
+// InitWithInterceptor 初始化db
+func InitWithInterceptor(defaultDB *sql.DB, in *sqlplus.Interceptor) {
 	once.Do(func() {
 		mutil = mutilDB{
 			d: &dbWithInterceptor{
@@ -58,8 +58,8 @@ func InitDBWithInterceptor(defaultDB *sql.DB, in *sqlplus.Interceptor) {
 	})
 }
 
-// RegisterDBWithInterceptor 注册 sql db
-func RegisterDBWithInterceptor(name string, db *sql.DB, in *sqlplus.Interceptor) error {
+// RegisterWithInterceptor 注册 sql db
+func RegisterWithInterceptor(name string, db *sql.DB, in *sqlplus.Interceptor) error {
 	if _, ok := mutil[name]; ok {
 		return fmt.Errorf("duplicate name: %v", name)
 	}
