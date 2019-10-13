@@ -1,89 +1,13 @@
-package multisql
+package multisqldb
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sync"
 
 	sqlplus "github.com/cheetah-fun-gs/goplus/dao/sql"
 	"github.com/knocknote/vitess-sqlparser/sqlparser"
 )
-
-const (
-	d = "default"
-)
-
-type dbWithInterceptor struct {
-	*sql.DB
-	*sqlplus.Interceptor
-}
-
-type mutilDB map[string]*dbWithInterceptor
-
-var (
-	onceDB sync.Once
-	mDB    mutilDB
-)
-
-// InitDB 初始化db
-func InitDB(defaultDB *sql.DB) {
-	onceDB.Do(func() {
-		mDB = mutilDB{
-			d: &dbWithInterceptor{
-				DB: defaultDB,
-			},
-		}
-	})
-}
-
-// RegisterDB 注册 sql db
-func RegisterDB(name string, db *sql.DB) error {
-	if _, ok := mDB[name]; ok {
-		return fmt.Errorf("duplicate name: %v", name)
-	}
-	mDB[name] = &dbWithInterceptor{
-		DB: db,
-	}
-	return nil
-}
-
-// InitDBWithInterceptor 初始化db
-func InitDBWithInterceptor(defaultDB *sql.DB, in *sqlplus.Interceptor) {
-	onceDB.Do(func() {
-		mDB = mutilDB{
-			d: &dbWithInterceptor{
-				DB:          defaultDB,
-				Interceptor: in,
-			},
-		}
-	})
-}
-
-// RegisterDBWithInterceptor 注册 sql db
-func RegisterDBWithInterceptor(name string, db *sql.DB, in *sqlplus.Interceptor) error {
-	if _, ok := mDB[name]; ok {
-		return fmt.Errorf("duplicate name: %v", name)
-	}
-	mDB[name] = &dbWithInterceptor{
-		DB:          db,
-		Interceptor: in,
-	}
-	return nil
-}
-
-// GetDB ...
-func GetDB() (*sql.DB, error) {
-	return GetDBN(d)
-}
-
-// GetDBN ...
-func GetDBN(name string) (*sql.DB, error) {
-	if db, ok := mDB[name]; ok {
-		return db.DB, nil
-	}
-	return nil, fmt.Errorf("name not found: %v", name)
-}
 
 // Begin ...
 func Begin() (*sql.Tx, error) {
@@ -142,7 +66,7 @@ func Stats() sql.DBStats {
 
 // BeginN ...
 func BeginN(name string) (*sql.Tx, error) {
-	if db, ok := mDB[name]; ok {
+	if db, ok := mutil[name]; ok {
 		return db.Begin()
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -150,7 +74,7 @@ func BeginN(name string) (*sql.Tx, error) {
 
 // BeginTxN ...
 func BeginTxN(ctx context.Context, name string, opts *sql.TxOptions) (*sql.Tx, error) {
-	if db, ok := mDB[name]; ok {
+	if db, ok := mutil[name]; ok {
 		return db.BeginTx(ctx, opts)
 	}
 	return nil, fmt.Errorf("name not found: %v", name)
@@ -163,7 +87,7 @@ func ExecN(name, query string, args ...interface{}) (sql.Result, error) {
 
 // ExecContextN ...
 func ExecContextN(ctx context.Context, name, query string, args ...interface{}) (sql.Result, error) {
-	if db, ok := mDB[name]; ok {
+	if db, ok := mutil[name]; ok {
 		var execSQL *sqlplus.ExecSQL
 		if db.Interceptor != nil {
 			parse, _ := sqlparser.Parse(query)
@@ -192,7 +116,7 @@ func PrepareN(name, query string) (*sql.Stmt, error) {
 
 // PrepareContextN ...
 func PrepareContextN(ctx context.Context, name, query string) (*sql.Stmt, error) {
-	if db, ok := mDB[name]; ok {
+	if db, ok := mutil[name]; ok {
 		if db.Interceptor != nil {
 			parse, _ := sqlparser.Parse(query)
 			execSQL := &sqlplus.ExecSQL{
@@ -215,7 +139,7 @@ func QueryN(name, query string, args ...interface{}) (*sql.Rows, error) {
 
 // QueryContextN ...
 func QueryContextN(ctx context.Context, name, query string, args ...interface{}) (*sql.Rows, error) {
-	if db, ok := mDB[name]; ok {
+	if db, ok := mutil[name]; ok {
 		var execSQL *sqlplus.ExecSQL
 		if db.Interceptor != nil {
 			parse, _ := sqlparser.Parse(query)
@@ -244,7 +168,7 @@ func QueryRowN(name, query string, args ...interface{}) (*sql.Row, error) {
 
 // QueryRowContextN ...
 func QueryRowContextN(ctx context.Context, name, query string, args ...interface{}) (*sql.Row, error) {
-	if db, ok := mDB[name]; ok {
+	if db, ok := mutil[name]; ok {
 		var execSQL *sqlplus.ExecSQL
 		if db.Interceptor != nil {
 			parse, _ := sqlparser.Parse(query)
@@ -268,7 +192,7 @@ func QueryRowContextN(ctx context.Context, name, query string, args ...interface
 
 // StatsN ...
 func StatsN(name string) sql.DBStats {
-	if db, ok := mDB[name]; ok {
+	if db, ok := mutil[name]; ok {
 		return db.Stats()
 	}
 	return sql.DBStats{}
