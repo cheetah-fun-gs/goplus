@@ -21,7 +21,7 @@ func CloneN(name string) (*mgo.Session, error) {
 
 // MustCloneN ...
 func MustCloneN(name string) *mgo.Session {
-	s, err := CloneN(d)
+	s, err := CloneN(name)
 	if err != nil {
 		panic(err)
 	}

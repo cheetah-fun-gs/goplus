@@ -25,19 +25,16 @@ func GetString(key string) (ok bool, val string, err error) {
 // GetMap get map from default
 func GetMap(key string) (ok bool, val map[string]interface{}, err error) {
 	return GetMapN(d, key)
-
 }
 
 // GetStruct get struct from default
 func GetStruct(key string, v interface{}) (ok bool, err error) {
 	return GetStructN(d, key, v)
-
 }
 
 // GetBoolD get bool with def from default
 func GetBoolD(key string, def bool) bool {
 	return GetBoolDN(d, key, def)
-
 }
 
 // GetIntD get int with def from default
@@ -49,7 +46,6 @@ func GetIntD(key string, def int) int {
 // GetStringD get map with def from default
 func GetStringD(key string, def string) string {
 	return GetStringDN(d, key, def)
-
 }
 
 // GetMapD get map with def from default
@@ -114,7 +110,7 @@ func GetStructN(name, key string, v interface{}) (ok bool, err error) {
 // GetBoolDN get bool with name
 func GetBoolDN(name, key string, def bool) bool {
 	if c, ok := mutil[name]; ok {
-		return c.GetBoolD(d, def)
+		return c.GetBoolD(key, def)
 	}
 	return def
 }
@@ -122,7 +118,7 @@ func GetBoolDN(name, key string, def bool) bool {
 // GetIntDN get int with name
 func GetIntDN(name, key string, def int) int {
 	if c, ok := mutil[name]; ok {
-		return c.GetIntD(d, def)
+		return c.GetIntD(key, def)
 	}
 	return def
 }
@@ -130,7 +126,7 @@ func GetIntDN(name, key string, def int) int {
 // GetStringDN get string with name
 func GetStringDN(name, key string, def string) string {
 	if c, ok := mutil[name]; ok {
-		return c.GetStringD(d, def)
+		return c.GetStringD(key, def)
 	}
 	return def
 }
@@ -138,7 +134,7 @@ func GetStringDN(name, key string, def string) string {
 // GetMapDN get map with name
 func GetMapDN(name, key string, def map[string]interface{}) map[string]interface{} {
 	if c, ok := mutil[name]; ok {
-		return c.GetMapD(d, def)
+		return c.GetMapD(key, def)
 	}
 	return def
 }
