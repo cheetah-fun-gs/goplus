@@ -26,6 +26,6 @@ func PostJSON(url string, response interface{}) error {
 }
 
 // JSONMultipartForm 上传文件或其他表单数据
-func JSONMultipartForm(url string, fields []MultipartFormField, response interface{}) error {
+func JSONMultipartForm(url string, fields []*MultipartFormField, response interface{}) error {
 	return defaultClient().JSONMultipartForm(url, fields, response)
 }
