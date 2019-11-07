@@ -108,7 +108,6 @@ func (client *Client) PostJSON(url string, response interface{}) error {
 		return fmt.Errorf("%s", resp.Status)
 	}
 
-	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -175,7 +174,6 @@ func (client *Client) JSONMultipartForm(url string, fields []*MultipartFormField
 		return fmt.Errorf("%s", resp.Status)
 	}
 
-	defer resp.Body.Close()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
