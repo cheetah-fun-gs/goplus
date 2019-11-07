@@ -132,7 +132,6 @@ type MultipartFormField struct {
 func (client *Client) JSONMultipartForm(url string, fields []*MultipartFormField, response interface{}) error {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
-	defer bodyWriter.Close()
 
 	for _, field := range fields {
 		if field.FilePath == "" {
@@ -163,6 +162,7 @@ func (client *Client) JSONMultipartForm(url string, fields []*MultipartFormField
 	}
 
 	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
 
 	resp, err := client.httpClient().Post(url, contentType, bodyBuf)
 	if err != nil {
