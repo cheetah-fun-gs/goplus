@@ -123,10 +123,10 @@ func (client *Client) PostJSON(url string, response interface{}) error {
 
 // MultipartFormField 文件或其他表单数据
 type MultipartFormField struct {
-	FieldName string
-	FilePath  string
-	FileName  string
-	Value     []byte
+	FieldName  string
+	FieldValue string
+	FilePath   string
+	FileName   string
 }
 
 // JSONMultipartForm 上传文件或其他表单数据
@@ -140,7 +140,7 @@ func (client *Client) JSONMultipartForm(url string, fields []MultipartFormField,
 			if err != nil {
 				return err
 			}
-			valueReader := bytes.NewReader(field.Value)
+			valueReader := bytes.NewReader([]byte(field.FieldValue))
 			if _, err = io.Copy(partWriter, valueReader); err != nil {
 				return err
 			}
