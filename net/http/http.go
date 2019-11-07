@@ -11,11 +11,24 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 // Client Client
 type Client struct {
-	*http.Client
+	Transport     http.RoundTripper
+	CheckRedirect func(req *http.Request, via []*http.Request) error
+	Jar           http.CookieJar
+	Timeout       time.Duration
+}
+
+func (client *Client) httpClient() *http.Client {
+	return &http.Client{
+		Transport:     client.Transport,
+		CheckRedirect: client.CheckRedirect,
+		Jar:           client.Jar,
+		Timeout:       client.Timeout,
+	}
 }
 
 // JSON post 方式获取 json返回
@@ -31,7 +44,7 @@ func (client *Client) JSON(url string, request interface{}, response interface{}
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := client.httpClient().Do(req)
 	if err != nil {
 		return err
 	}
@@ -55,7 +68,7 @@ func (client *Client) JSON(url string, request interface{}, response interface{}
 
 // GetJSON 用get方式获取json返回
 func (client *Client) GetJSON(url string, response interface{}) error {
-	resp, err := client.Get(url)
+	resp, err := client.httpClient().Get(url)
 	if err != nil {
 		return err
 	}
@@ -85,7 +98,7 @@ func (client *Client) PostJSON(url string, response interface{}) error {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
 
-	resp, err := client.Do(req)
+	resp, err := client.httpClient().Do(req)
 	if err != nil {
 		return err
 	}
@@ -152,7 +165,7 @@ func (client *Client) JSONMultipartForm(url string, fields []MultipartFormField,
 	contentType := bodyWriter.FormDataContentType()
 	bodyWriter.Close()
 
-	resp, err := client.Post(url, contentType, bodyBuf)
+	resp, err := client.httpClient().Post(url, contentType, bodyBuf)
 	if err != nil {
 		return err
 	}

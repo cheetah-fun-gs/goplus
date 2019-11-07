@@ -1,13 +1,12 @@
 package http
 
 import (
-	"net/http"
 	"time"
 )
 
 func defaultClient() *Client {
 	return &Client{
-		&http.Client{Timeout: time.Second * 5},
+		Timeout: time.Second * 5,
 	}
 }
 
