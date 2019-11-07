@@ -130,7 +130,7 @@ type MultipartFormField struct {
 }
 
 // JSONMultipartForm 上传文件或其他表单数据
-func (client *Client) JSONMultipartForm(url string, fields []MultipartFormField, response interface{}) error {
+func (client *Client) JSONMultipartForm(url string, fields []*MultipartFormField, response interface{}) error {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
 
