@@ -2,62 +2,29 @@
 package http
 
 import (
-	"crypto/tls"
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"strings"
 )
 
-// JSONoVerify 跳过校验 解决 x509: certificate signed by unknown authority 的问题
-func JSONoVerify(url string, request interface{}, response interface{}) error {
-	postBody, err := json.Marshal(request)
-	if err != nil {
-		return err
-	}
-
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-
-	client := &http.Client{Transport: tr}
-	req, err := http.NewRequest("POST", url, strings.NewReader(string(postBody)))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("%s", resp.Status)
-	}
-
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(bodyBytes, response)
-	if err != nil {
-		return err
-	}
-	return nil
+// Client Client
+type Client struct {
+	*http.Client
 }
 
 // JSON post 方式获取 json返回
-func JSON(url string, request interface{}, response interface{}) error {
+func (client *Client) JSON(url string, request interface{}, response interface{}) error {
 	postBody, err := json.Marshal(request)
 	if err != nil {
 		return err
 	}
 
-	client := &http.Client{}
 	req, err := http.NewRequest("POST", url, strings.NewReader(string(postBody)))
 	if err != nil {
 		return err
@@ -87,8 +54,8 @@ func JSON(url string, request interface{}, response interface{}) error {
 }
 
 // GetJSON 用get方式获取json返回
-func GetJSON(url string, response interface{}) error {
-	resp, err := http.Get(url)
+func (client *Client) GetJSON(url string, response interface{}) error {
+	resp, err := client.Get(url)
 	if err != nil {
 		return err
 	}
@@ -111,8 +78,7 @@ func GetJSON(url string, response interface{}) error {
 }
 
 // PostJSON 用post方式获取json返回
-func PostJSON(url string, response interface{}) error {
-	client := &http.Client{}
+func (client *Client) PostJSON(url string, response interface{}) error {
 	req, err := http.NewRequest("POST", url, strings.NewReader(""))
 	if err != nil {
 		return err
@@ -120,6 +86,73 @@ func PostJSON(url string, response interface{}) error {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
 
 	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("%s", resp.Status)
+	}
+
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bodyBytes, response)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// MultipartFormField 文件或其他表单数据
+type MultipartFormField struct {
+	FieldName string
+	FilePath  string
+	FileName  string
+	Value     []byte
+}
+
+// JSONMultipartForm 上传文件或其他表单数据
+func (client *Client) JSONMultipartForm(url string, fields []MultipartFormField, response interface{}) error {
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	for _, field := range fields {
+		if field.FilePath == "" {
+			partWriter, err := bodyWriter.CreateFormField(field.FieldName)
+			if err != nil {
+				return err
+			}
+			valueReader := bytes.NewReader(field.Value)
+			if _, err = io.Copy(partWriter, valueReader); err != nil {
+				return err
+			}
+		} else {
+			fileWriter, err := bodyWriter.CreateFormFile(field.FieldName, field.FileName)
+			if err != nil {
+				return err
+			}
+
+			fh, err := os.Open(field.FilePath)
+			if err != nil {
+				return err
+			}
+			defer fh.Close()
+
+			if _, err = io.Copy(fileWriter, fh); err != nil {
+				return err
+			}
+		}
+	}
+
+	contentType := bodyWriter.FormDataContentType()
+	bodyWriter.Close()
+
+	resp, err := client.Post(url, contentType, bodyBuf)
 	if err != nil {
 		return err
 	}
