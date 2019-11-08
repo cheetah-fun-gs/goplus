@@ -8,7 +8,11 @@ import (
 )
 
 // Zfind 查找 member
-func Zfind(conn redigo.Conn, key, member interface{}, isReverse bool) (ok bool, rank int, score float64, err error) {
+func Zfind(conn redigo.Conn, key, v interface{}, isReverse bool) (ok bool, rank int, score float64, err error) {
+	member, err := toJSON(v)
+	if err != nil {
+		return
+	}
 	var commandName1, commandName2 string
 	if !isReverse {
 		commandName1 = "ZRANK"
