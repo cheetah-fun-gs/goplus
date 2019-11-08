@@ -37,28 +37,28 @@ func decodeReply(reply interface{}, v interface{}) (string, error) {
 }
 
 // XAdd xadd  data:struct
-func XAdd(redigoConn redigo.Conn, key string, maxlen int, data interface{}) (string, error) {
+func XAdd(redigoConn redigo.Conn, key string, maxlen int, v interface{}) (string, error) {
 	if maxlen == 0 {
 		maxlen = 10000
 	}
 	args := []interface{}{key, "MAXLEN", "~", maxlen, "*"}
 
-	for k, v := range structs.Map(data) {
-		args = append(args, k, v)
+	for key, val := range structs.Map(v) {
+		args = append(args, key, val)
 	}
 	return redigo.String(redigoConn.Do("XADD", args...))
 }
 
 // XAddPipeline xadd的pipeline模式
-func XAddPipeline(redigoConn redigo.Conn, key string, maxlen int, datas ...interface{}) ([]string, error) {
+func XAddPipeline(redigoConn redigo.Conn, key string, maxlen int, v ...interface{}) ([]string, error) {
 	if maxlen == 0 {
 		maxlen = 10000
 	}
 
-	for _, data := range datas {
+	for _, vv := range v {
 		args := []interface{}{key, "MAXLEN", "~", maxlen, "*"}
-		for k, v := range structs.Map(data) {
-			args = append(args, k, v)
+		for key, val := range structs.Map(vv) {
+			args = append(args, key, val)
 		}
 		err := redigoConn.Send("XADD", args...)
 		if err != nil {
@@ -70,7 +70,7 @@ func XAddPipeline(redigoConn redigo.Conn, key string, maxlen int, datas ...inter
 		return nil, err
 	}
 	r := []string{}
-	for i := 0; i < len(datas); i++ {
+	for i := 0; i < len(v); i++ {
 		reply, _ := redigo.String(redigoConn.Receive())
 		r = append(r, reply)
 	}

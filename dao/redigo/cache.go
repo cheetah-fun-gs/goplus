@@ -1,28 +1,28 @@
 package redigo
 
 import (
-	"encoding/json"
-
 	redigo "github.com/gomodule/redigo/redis"
 )
 
 // Set Set
-func Set(conn redigo.Conn, key string, value interface{}, timeOut int) error {
-	storeValue := ""
-	if value != nil {
-		data, err := json.Marshal(value)
-		if err != nil {
-			return err
-		}
-		storeValue = string(data)
+func Set(conn redigo.Conn, key string, v interface{}, expire int) error {
+	data, err := toJSON(v)
+	if err != nil {
+		return err
 	}
-	_, err := conn.Do("SET", key, storeValue, "EX", timeOut)
+
+	if expire != 0 {
+		_, err := conn.Do("SET", key, data, "EX", expire)
+		return err
+	}
+
+	_, err = conn.Do("SET", key, data)
 	return err
 }
 
 // Get Get
-func Get(conn redigo.Conn, key string, value interface{}) (bool, error) {
-	storeValue, err := redigo.String(conn.Do("GET", key))
+func Get(conn redigo.Conn, key string, v interface{}) (bool, error) {
+	data, err := redigo.String(conn.Do("GET", key))
 	if err != nil && err != redigo.ErrNil {
 		return false, err
 	}
@@ -30,12 +30,7 @@ func Get(conn redigo.Conn, key string, value interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if storeValue == "" {
-		return true, nil
-	}
-
-	err = json.Unmarshal([]byte(storeValue), value)
-	if err != nil {
+	if err := fromJSON(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
