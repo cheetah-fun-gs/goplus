@@ -1,55 +1,60 @@
 package redigo
 
 import (
+	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	redigo "github.com/gomodule/redigo/redis"
 )
 
 // LPush LPush
-func LPush(conn redigo.Conn, key string, v ...interface{}) error {
+func LPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 	args := []interface{}{key}
 	for _, vv := range v {
-		data, err := toJSON(vv)
+		data, err := jsonplus.ToJSON(vv)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		args = append(args, data)
 	}
-	_, err := conn.Do("LPUSH", args...)
-	return err
+	return redigo.Int(conn.Do("LPUSH", args...))
 }
 
 // RPush RPush
-func RPush(conn redigo.Conn, key string, v ...interface{}) error {
+func RPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 	args := []interface{}{key}
 	for _, vv := range v {
-		data, err := toJSON(vv)
+		data, err := jsonplus.ToJSON(vv)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		args = append(args, data)
 	}
-	_, err := conn.Do("RPUSH", args...)
-	return err
+	return redigo.Int(conn.Do("RPUSH", args...))
 }
 
 // LPushX LPushX
-func LPushX(conn redigo.Conn, key string, v interface{}) error {
-	data, err := toJSON(v)
-	if err != nil {
-		return err
+func LPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+	args := []interface{}{key}
+	for _, vv := range v {
+		data, err := jsonplus.ToJSON(vv)
+		if err != nil {
+			return 0, err
+		}
+		args = append(args, data)
 	}
-	_, err = conn.Do("LPUSHX", key, data)
-	return err
+	return redigo.Int(conn.Do("LPUSHX", args...))
 }
 
 // RPushX RPushX
-func RPushX(conn redigo.Conn, key string, v interface{}) error {
-	data, err := toJSON(v)
-	if err != nil {
-		return err
+func RPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+	args := []interface{}{key}
+	for _, vv := range v {
+		data, err := jsonplus.ToJSON(vv)
+		if err != nil {
+			return 0, err
+		}
+		args = append(args, data)
 	}
-	_, err = conn.Do("RPUSHX", key, data)
-	return err
+	return redigo.Int(conn.Do("RPUSHX", args...))
 }
 
 // LPop LPop
@@ -62,7 +67,7 @@ func LPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if err := fromJSON(data, v); err != nil {
+	if err := jsonplus.FromJSON(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -78,20 +83,17 @@ func RPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if err := fromJSON(data, v); err != nil {
+	if err := jsonplus.FromJSON(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-// LRange LRange
+// LRange LRange v []interface{}{} 的指针
 func LRange(conn redigo.Conn, key string, start, stop int, v interface{}) error {
 	datas, err := redigo.Strings(conn.Do("LRANGE", key, start, stop))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
-	if err := fromJSON(stringsToJSON(datas), v); err != nil {
-		return err
-	}
-	return nil
+	return jsonplus.StringsToList(datas, v)
 }

@@ -1,12 +1,13 @@
 package redigo
 
 import (
+	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	redigo "github.com/gomodule/redigo/redis"
 )
 
 // Set Set
 func Set(conn redigo.Conn, key string, v interface{}, expire int) error {
-	data, err := toJSON(v)
+	data, err := jsonplus.ToJSON(v)
 	if err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func Get(conn redigo.Conn, key string, v interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if err := fromJSON(data, v); err != nil {
+	if err := jsonplus.FromJSON(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
