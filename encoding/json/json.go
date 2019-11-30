@@ -6,16 +6,57 @@ import (
 	"strings"
 )
 
+// 尝试处理json异常
+func tryHandleError(v interface{}, err error) (interface{}, bool) {
+	if strings.HasPrefix(err.Error(), "json: unsupported type: map[interface {}]") {
+		return keyToString(v), true
+	}
+	return v, false
+}
+
+// 强制把json的key转为string
+func keyToString(v interface{}) interface{} {
+	switch v.(type) {
+	case []interface{}:
+		r := []interface{}{}
+		for _, vv := range v.([]interface{}) {
+			r = append(r, keyToString(vv))
+		}
+		return r
+	case map[interface{}]interface{}:
+		r := map[string]interface{}{}
+		for key, val := range v.(map[interface{}]interface{}) {
+			r[fmt.Sprintf("%v", key)] = keyToString(val)
+		}
+		return r
+	}
+	return v
+}
+
 // ToJSON ToJSON
 func ToJSON(v interface{}) (string, error) {
 	if v == nil {
 		return "", fmt.Errorf("v is nil")
 	}
-	data, err := json.Marshal(v)
-	if err != nil {
-		return "", err
+
+	var err error
+	var ok bool
+	for {
+		data, errNew := json.Marshal(v)
+		if errNew == nil {
+			return string(data), nil
+		}
+		// 和上一次异常相同表示这类异常 tryHandleError 处理不了
+		if err != nil && err.Error() == errNew.Error() {
+			return "", errNew
+		}
+
+		v, ok = tryHandleError(v, errNew)
+		if !ok {
+			return "", errNew
+		}
+		err = errNew
 	}
-	return string(data), nil
 }
 
 // FromJSON FromJSON
