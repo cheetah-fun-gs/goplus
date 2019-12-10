@@ -127,3 +127,31 @@ func TestToJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestFromJSON(t *testing.T) {
+	type args struct {
+		data string
+		v    interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "FromJSONList",
+			args: args{
+				data: "[1,2,3,4]",
+				v:    &[]int{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := FromJSON(tt.args.data, tt.args.v); (err != nil) != tt.wantErr {
+				t.Errorf("FromJSON() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
