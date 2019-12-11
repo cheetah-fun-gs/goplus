@@ -37,7 +37,7 @@ func decodeReply(reply interface{}, v interface{}) (string, error) {
 }
 
 // XAdd xadd  data:struct
-func XAdd(redigoConn redigo.Conn, key string, maxlen int, v interface{}) (string, error) {
+func XAdd(conn redigo.Conn, key string, maxlen int, v interface{}) (string, error) {
 	if maxlen == 0 {
 		maxlen = 10000
 	}
@@ -46,11 +46,11 @@ func XAdd(redigoConn redigo.Conn, key string, maxlen int, v interface{}) (string
 	for key, val := range structs.Map(v) {
 		args = append(args, key, val)
 	}
-	return redigo.String(redigoConn.Do("XADD", args...))
+	return redigo.String(conn.Do("XADD", args...))
 }
 
 // XAddPipeline xadd的pipeline模式
-func XAddPipeline(redigoConn redigo.Conn, key string, maxlen int, v ...interface{}) ([]string, error) {
+func XAddPipeline(conn redigo.Conn, key string, maxlen int, v ...interface{}) ([]string, error) {
 	if maxlen == 0 {
 		maxlen = 10000
 	}
@@ -60,25 +60,25 @@ func XAddPipeline(redigoConn redigo.Conn, key string, maxlen int, v ...interface
 		for key, val := range structs.Map(vv) {
 			args = append(args, key, val)
 		}
-		err := redigoConn.Send("XADD", args...)
+		err := conn.Send("XADD", args...)
 		if err != nil {
 			return nil, err
 		}
 	}
-	err := redigoConn.Flush()
+	err := conn.Flush()
 	if err != nil {
 		return nil, err
 	}
 	r := []string{}
 	for i := 0; i < len(v); i++ {
-		reply, _ := redigo.String(redigoConn.Receive())
+		reply, _ := redigo.String(conn.Receive())
 		r = append(r, reply)
 	}
 	return r, nil
 }
 
 // XRead v 结构体指针, id 有2个特殊值: 0-0 从头开始读, $ 从加入时开始读
-func XRead(redigoConn redigo.Conn, key, id string, v interface{}, block int64) (bool, string, error) {
+func XRead(conn redigo.Conn, key, id string, v interface{}, block int64) (bool, string, error) {
 	if block == 0 {
 		block = 1000
 	}
@@ -87,11 +87,11 @@ func XRead(redigoConn redigo.Conn, key, id string, v interface{}, block int64) (
 	}
 
 	args := []interface{}{"COUNT", 1, "BLOCK", block, "STREAMS", key, id}
-	reply, err := redigoConn.Do("XREAD", args...)
-	if err != nil && err != redigo.ErrNil {
+	reply, err := conn.Do("XREAD", args...)
+	if err != nil {
 		return false, "", err
 	}
-	if err == redigo.ErrNil {
+	if reply == nil {
 		return false, "", nil
 	}
 	id, err = decodeReply(reply, v)
@@ -102,7 +102,7 @@ func XRead(redigoConn redigo.Conn, key, id string, v interface{}, block int64) (
 }
 
 // XReadGroup v 结构体指针
-func XReadGroup(redigoConn redigo.Conn, key, groupName, consumerName, id string, v interface{}, block int, isAck bool) (bool, string, error) {
+func XReadGroup(conn redigo.Conn, key, groupName, consumerName, id string, v interface{}, block int, isAck bool) (bool, string, error) {
 	if block == 0 {
 		block = 1000
 	}
@@ -118,11 +118,11 @@ func XReadGroup(redigoConn redigo.Conn, key, groupName, consumerName, id string,
 		args = append(args, "NOACK")
 	}
 	args = append(args, "STREAMS", key, ">")
-	reply, err := redigoConn.Do("XREADGROUP", args...)
-	if err != nil && err != redigo.ErrNil {
+	reply, err := conn.Do("XREADGROUP", args...)
+	if err != nil {
 		return false, "", err
 	}
-	if err == redigo.ErrNil {
+	if reply == nil {
 		return false, "", nil
 	}
 	id, err = decodeReply(reply, v)
@@ -133,14 +133,14 @@ func XReadGroup(redigoConn redigo.Conn, key, groupName, consumerName, id string,
 }
 
 // XGroupCreate 创建消费者组
-func XGroupCreate(redigoConn redigo.Conn, key, groupName string) error {
-	_, err := redigoConn.Do("XGROUP", "CREATE", key, groupName, "$", "MKSTREAM")
+func XGroupCreate(conn redigo.Conn, key, groupName string) error {
+	_, err := conn.Do("XGROUP", "CREATE", key, groupName, "$", "MKSTREAM")
 	return err
 }
 
 // XGroupDestroy 销毁消费者组
-func XGroupDestroy(redigoConn redigo.Conn, key, groupName string) error {
-	_, err := redigoConn.Do("XGROUP", "DESTROY", key, groupName)
+func XGroupDestroy(conn redigo.Conn, key, groupName string) error {
+	_, err := redigo.Bytes(conn.Do("XGROUP", "DESTROY", key, groupName))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
