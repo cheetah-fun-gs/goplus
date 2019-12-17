@@ -74,9 +74,9 @@ func HMGet(conn redigo.Conn, key string, v map[string]interface{}) error {
 	return nil
 }
 
-// HMGetAll HMGetAll  v map[string]interface{}{} 的指针
-func HMGetAll(conn redigo.Conn, key string, v interface{}) error {
-	datas, err := redigo.Strings(conn.Do("HMGETALL", key))
+// HGetAll HGetAll  v map[string]interface{}{} 的指针
+func HGetAll(conn redigo.Conn, key string, v interface{}) error {
+	datas, err := redigo.Strings(conn.Do("HGETALL", key))
 	if err != nil {
 		return err
 	}
