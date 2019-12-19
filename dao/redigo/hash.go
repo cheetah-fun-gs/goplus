@@ -6,7 +6,15 @@ import (
 )
 
 // HSet HSet
-func HSet(conn redigo.Conn, key, field string, v interface{}) (int, error) {
+func HSet(redigoAny interface{}, key, field string, v interface{}) (int, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return 0, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	data, err := jsonplus.ToJSON(v)
 	if err != nil {
 		return 0, err
@@ -15,7 +23,15 @@ func HSet(conn redigo.Conn, key, field string, v interface{}) (int, error) {
 }
 
 // HSetNX HSetNX
-func HSetNX(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
+func HSetNX(redigoAny interface{}, key, field string, v interface{}) (bool, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return false, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	data, err := jsonplus.ToJSON(v)
 	if err != nil {
 		return false, err
@@ -25,7 +41,15 @@ func HSetNX(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
 }
 
 // HGet HGet
-func HGet(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
+func HGet(redigoAny interface{}, key, field string, v interface{}) (bool, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return false, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	data, err := redigo.String(conn.Do("HGET", key, field))
 	if err != nil && err != redigo.ErrNil {
 		return false, err
@@ -40,7 +64,15 @@ func HGet(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
 }
 
 // HMSet HMSet
-func HMSet(conn redigo.Conn, key string, v map[string]interface{}) (int, error) {
+func HMSet(redigoAny interface{}, key string, v map[string]interface{}) (int, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return 0, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	args := []interface{}{key}
 	for field, vv := range v {
 		data, err := jsonplus.ToJSON(vv)
@@ -53,7 +85,15 @@ func HMSet(conn redigo.Conn, key string, v map[string]interface{}) (int, error) 
 }
 
 // HMGet HMGet
-func HMGet(conn redigo.Conn, key string, v map[string]interface{}) error {
+func HMGet(redigoAny interface{}, key string, v map[string]interface{}) error {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	args := []interface{}{key}
 	for field := range v {
 		args = append(args, field)
@@ -75,7 +115,15 @@ func HMGet(conn redigo.Conn, key string, v map[string]interface{}) error {
 }
 
 // HGetAll HGetAll  v map[string]interface{}{} 的指针
-func HGetAll(conn redigo.Conn, key string, v interface{}) error {
+func HGetAll(redigoAny interface{}, key string, v interface{}) error {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	datas, err := redigo.Strings(conn.Do("HGETALL", key))
 	if err != nil {
 		return err
@@ -84,7 +132,15 @@ func HGetAll(conn redigo.Conn, key string, v interface{}) error {
 }
 
 // HVals HVals v []interface{}{} 的指针
-func HVals(conn redigo.Conn, key string, v interface{}) error {
+func HVals(redigoAny interface{}, key string, v interface{}) error {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	datas, err := redigo.Strings(conn.Do("HVALS", key))
 	if err != nil && err != redigo.ErrNil {
 		return err

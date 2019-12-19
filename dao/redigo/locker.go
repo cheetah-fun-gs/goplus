@@ -12,7 +12,15 @@ import (
 var ErrorLocked = fmt.Errorf("locked")
 
 // Lock 简单锁: 超时释放, 秒级, 无需解锁
-func Lock(conn redigo.Conn, name string, timeout int) error {
+func Lock(redigoAny interface{}, name string, timeout int) error {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	ok, err := redigo.String(conn.Do("SET", name, "", "EX", fmt.Sprintf("%d", timeout), "NX"))
 	if err != nil && err != redigo.ErrNil {
 		return err

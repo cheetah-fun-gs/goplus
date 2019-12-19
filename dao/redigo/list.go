@@ -6,7 +6,15 @@ import (
 )
 
 // LPush LPush
-func LPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+func LPush(redigoAny interface{}, key string, v ...interface{}) (int, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return 0, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	args := []interface{}{key}
 	for _, vv := range v {
 		data, err := jsonplus.ToJSON(vv)
@@ -19,7 +27,15 @@ func LPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 }
 
 // RPush RPush
-func RPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+func RPush(redigoAny interface{}, key string, v ...interface{}) (int, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return 0, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	args := []interface{}{key}
 	for _, vv := range v {
 		data, err := jsonplus.ToJSON(vv)
@@ -32,7 +48,15 @@ func RPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 }
 
 // LPushX LPushX
-func LPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+func LPushX(redigoAny interface{}, key string, v ...interface{}) (int, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return 0, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	args := []interface{}{key}
 	for _, vv := range v {
 		data, err := jsonplus.ToJSON(vv)
@@ -45,7 +69,15 @@ func LPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 }
 
 // RPushX RPushX
-func RPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+func RPushX(redigoAny interface{}, key string, v ...interface{}) (int, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return 0, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	args := []interface{}{key}
 	for _, vv := range v {
 		data, err := jsonplus.ToJSON(vv)
@@ -58,7 +90,15 @@ func RPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 }
 
 // LPop LPop
-func LPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
+func LPop(redigoAny interface{}, key string, v interface{}) (bool, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return false, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	data, err := redigo.String(conn.Do("LPOP", key))
 	if err != nil && err != redigo.ErrNil {
 		return false, err
@@ -74,7 +114,15 @@ func LPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
 }
 
 // RPop RPop
-func RPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
+func RPop(redigoAny interface{}, key string, v interface{}) (bool, error) {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return false, err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	data, err := redigo.String(conn.Do("RPOP", key))
 	if err != nil && err != redigo.ErrNil {
 		return false, err
@@ -90,7 +138,15 @@ func RPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
 }
 
 // LRange LRange v []interface{}{} 的指针
-func LRange(conn redigo.Conn, key string, start, stop int, v interface{}) error {
+func LRange(redigoAny interface{}, key string, start, stop int, v interface{}) error {
+	isPool, conn, err := AssertConn(redigoAny)
+	if err != nil {
+		return err
+	}
+	if isPool {
+		defer conn.Close()
+	}
+
 	datas, err := redigo.Strings(conn.Do("LRANGE", key, start, stop))
 	if err != nil && err != redigo.ErrNil {
 		return err
