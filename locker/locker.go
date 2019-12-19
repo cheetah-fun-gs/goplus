@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	redigoplus "github.com/cheetah-fun-gs/goplus/dao/redigo"
 	uuidplus "github.com/cheetah-fun-gs/goplus/uuid"
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -13,7 +14,7 @@ var ErrorLocked = fmt.Errorf("locked")
 
 // Lock 简单锁: 超时释放, 秒级, 无需解锁
 func Lock(redigoAny interface{}, name string, timeout int) error {
-	isPool, conn, err := AssertConn(redigoAny)
+	isPool, conn, err := redigoplus.AssertConn(redigoAny)
 	if err != nil {
 		return err
 	}
