@@ -73,8 +73,8 @@ func isMathStatus(status EventStatus, statuses []EventStatus) bool {
 	return false
 }
 
-// GetEventsWithParam 获取指定事件 ids statuses 为空表示 全匹配
-func (trigger *DelayTrigger) GetEventsWithParam(ids []string, statuses []EventStatus) ([]*Event, error) {
+// GetEventsByParam 获取指定事件 ids statuses 为空表示 全匹配
+func (trigger *DelayTrigger) GetEventsByParam(ids []string, statuses []EventStatus) ([]*Event, error) {
 	conn := trigger.pool.Get()
 	defer conn.Close()
 
@@ -112,9 +112,9 @@ type EventAndCount struct {
 	Count int
 }
 
-// GetEventsAndCountsWithParam 获取所有事件信息
-func (trigger *DelayTrigger) GetEventsAndCountsWithParam(ids []string, statuses []EventStatus) (int, []*EventAndCount, error) {
-	events, err := trigger.GetEventsWithParam(ids, statuses)
+// GetEventsAndCountsByParam 获取所有事件信息
+func (trigger *DelayTrigger) GetEventsAndCountsByParam(ids []string, statuses []EventStatus) (int, []*EventAndCount, error) {
+	events, err := trigger.GetEventsByParam(ids, statuses)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -171,20 +171,30 @@ func (trigger *DelayTrigger) getTargetCounts(ids []string) ([]int, error) {
 
 // GetEvents 获得所有事件
 func (trigger *DelayTrigger) GetEvents() ([]*Event, error) {
-	return trigger.GetEventsWithParam([]string{}, []EventStatus{})
+	return trigger.GetEventsByParam([]string{}, []EventStatus{})
 }
 
 // GetActivedEvents 获得所有活跃事件
 func (trigger *DelayTrigger) GetActivedEvents() ([]*Event, error) {
-	return trigger.GetEventsWithParam([]string{}, []EventStatus{EventStatusActived})
+	return trigger.GetEventsByParam([]string{}, []EventStatus{EventStatusActived})
+}
+
+// GetActivedEventsByID 按事件id获得所有活跃事件
+func (trigger *DelayTrigger) GetActivedEventsByID(ids []string) ([]*Event, error) {
+	return trigger.GetEventsByParam(ids, []EventStatus{EventStatusActived})
 }
 
 // GetEventsAndCounts  获得所有事件 和 目标数
 func (trigger *DelayTrigger) GetEventsAndCounts() (int, []*EventAndCount, error) {
-	return trigger.GetEventsAndCountsWithParam([]string{}, []EventStatus{})
+	return trigger.GetEventsAndCountsByParam([]string{}, []EventStatus{})
 }
 
 // GetActivedEventsAndCounts  获得所有活跃事件 和 目标数
 func (trigger *DelayTrigger) GetActivedEventsAndCounts() (int, []*EventAndCount, error) {
-	return trigger.GetEventsAndCountsWithParam([]string{}, []EventStatus{EventStatusActived})
+	return trigger.GetEventsAndCountsByParam([]string{}, []EventStatus{EventStatusActived})
+}
+
+// GetActivedEventsAndCountsByID  获得所有活跃事件 和 目标数
+func (trigger *DelayTrigger) GetActivedEventsAndCountsByID(ids []string) (int, []*EventAndCount, error) {
+	return trigger.GetEventsAndCountsByParam(ids, []EventStatus{EventStatusActived})
 }
