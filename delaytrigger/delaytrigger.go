@@ -8,6 +8,11 @@ import (
 	redigo "github.com/gomodule/redigo/redis"
 )
 
+const (
+	triggerTsMin = 120
+	triggerTsMax = 3600 * 24 * 10
+)
+
 // DelayTrigger 延迟触发器
 type DelayTrigger struct {
 	pool   *redigo.Pool

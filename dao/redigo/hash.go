@@ -6,12 +6,13 @@ import (
 )
 
 // HSet HSet
-func HSet(conn redigo.Conn, key, field string, v interface{}) (int, error) {
+func HSet(conn redigo.Conn, key, field string, v interface{}) error {
 	data, err := jsonplus.ToJSON(v)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return redigo.Int(conn.Do("HSET", key, field, data))
+	_, err = conn.Do("HSET", key, field, data)
+	return err
 }
 
 // HSetNX HSetNX
