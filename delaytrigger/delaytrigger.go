@@ -4,6 +4,7 @@ package delaytrigger
 import (
 	"fmt"
 
+	redigoplus "github.com/cheetah-fun-gs/goplus/dao/redigo"
 	"github.com/cheetah-fun-gs/goplus/logger"
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -23,8 +24,9 @@ type DelayTrigger struct {
 // New 获取一个新的触发器
 func New(pool *redigo.Pool, name string) *DelayTrigger {
 	return &DelayTrigger{
-		pool: pool,
-		name: name,
+		pool:   pool,
+		name:   name,
+		logger: &logger.DefaultLogger{},
 	}
 }
 
@@ -49,7 +51,15 @@ func (trigger *DelayTrigger) getEventKey(eventID string) string {
 
 // GetEvents 获取所有事件信息
 func (trigger *DelayTrigger) GetEvents() ([]*Event, error) {
-	return nil, nil
+	conn := trigger.pool.Get()
+	defer conn.Close()
+
+	key := trigger.getTriggerKey()
+	rs := []*Event{}
+	if err := redigoplus.HVals(conn, key, &rs); err != nil {
+		return nil, err
+	}
+	return rs, nil
 }
 
 // GetActivedEvents 获取已激活的所有事件信息
@@ -74,12 +84,112 @@ type EventWithCount struct {
 	Count int
 }
 
-// GetEventsWithCount 获取所有事件信息
-func (trigger *DelayTrigger) GetEventsWithCount() ([]*Event, error) {
-	return nil, nil
+// GetEventWithCounts 获取所有事件信息
+func (trigger *DelayTrigger) GetEventWithCounts() ([]*EventWithCount, error) {
+	events, err := trigger.GetEvents()
+	if err != nil {
+		return nil, err
+	}
+	return trigger.GetCountForEvents(events)
 }
 
-// GetActivedEventsWithCount 获取已激活的所有事件信息
-func (trigger *DelayTrigger) GetActivedEventsWithCount() ([]*Event, error) {
-	return nil, nil
+// GetActivedEventWithCounts 获取已激活的所有事件信息
+func (trigger *DelayTrigger) GetActivedEventWithCounts() ([]*EventWithCount, error) {
+	events, err := trigger.GetActivedEvents()
+	if err != nil {
+		return nil, err
+	}
+	return trigger.GetCountForEvents(events)
+}
+
+// GetCountForEvents 获取事件数量
+func (trigger *DelayTrigger) GetCountForEvents(events []*Event) ([]*EventWithCount, error) {
+	conn := trigger.pool.Get()
+	defer conn.Close()
+
+	for _, event := range events {
+		if err := conn.Send("SCARD", trigger.getEventKey(event.ID)); err != nil {
+			return nil, err
+		}
+	}
+	if err := conn.Flush(); err != nil {
+		return nil, err
+	}
+
+	rs := []*EventWithCount{}
+	for _, event := range events {
+		count, err := redigo.Int(conn.Receive())
+		if err != nil {
+			return nil, err
+		}
+		rs = append(rs, &EventWithCount{
+			Event: event,
+			Count: count,
+		})
+	}
+	return rs, nil
+}
+
+// GetTargetCount 获得所有目标数
+func (trigger *DelayTrigger) GetTargetCount() (int, error) {
+	eventWithCounts, err := trigger.GetEventWithCounts()
+	if err != nil {
+		return 0, err
+	}
+	total := 0
+	for _, e := range eventWithCounts {
+		total += e.Count
+	}
+	return total, nil
+}
+
+// GetActivedTargetCount 获得活跃的目标数
+func (trigger *DelayTrigger) GetActivedTargetCount() (int, error) {
+	eventWithCounts, err := trigger.GetActivedEventWithCounts()
+	if err != nil {
+		return 0, err
+	}
+	total := 0
+	for _, e := range eventWithCounts {
+		total += e.Count
+	}
+	return total, nil
+}
+
+// GetTargetCountForEventIDS 获得所有目标数
+func (trigger *DelayTrigger) GetTargetCountForEventIDS(eventIDS []string) (int, error) {
+	events := []*Event{}
+	for _, eID := range eventIDS {
+		events = append(events, &Event{
+			ID: eID,
+		})
+	}
+
+	eventWithCounts, err := trigger.GetCountForEvents(events)
+	if err != nil {
+		return 0, err
+	}
+	total := 0
+	for _, e := range eventWithCounts {
+		total += e.Count
+	}
+	return total, nil
+}
+
+// GetActivedTargetCountForEventIDS 获得活跃的目标数
+func (trigger *DelayTrigger) GetActivedTargetCountForEventIDS(eventIDS []string) (int, error) {
+	eventWithCounts, err := trigger.GetActivedEventWithCounts()
+	if err != nil {
+		return 0, err
+	}
+
+	total := 0
+	for _, e := range eventWithCounts {
+		for _, eID := range eventIDS {
+			if eID == e.ID {
+				total += e.Count
+			}
+		}
+	}
+	return total, nil
 }
