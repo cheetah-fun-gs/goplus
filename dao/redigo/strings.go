@@ -6,15 +6,7 @@ import (
 )
 
 // Set Set
-func Set(redigoAny interface{}, key string, v interface{}, expire int) error {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
+func Set(conn redigo.Conn, key string, v interface{}, expire int) error {
 	data, err := jsonplus.ToJSON(v)
 	if err != nil {
 		return err
@@ -30,15 +22,7 @@ func Set(redigoAny interface{}, key string, v interface{}, expire int) error {
 }
 
 // Get Get
-func Get(redigoAny interface{}, key string, v interface{}) (bool, error) {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return false, err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
+func Get(conn redigo.Conn, key string, v interface{}) (bool, error) {
 	data, err := redigo.String(conn.Do("GET", key))
 	if err != nil && err != redigo.ErrNil {
 		return false, err

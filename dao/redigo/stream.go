@@ -37,15 +37,7 @@ func decodeReply(reply interface{}, v interface{}) (string, error) {
 }
 
 // XAdd xadd  data:struct
-func XAdd(redigoAny interface{}, key string, maxlen int, v interface{}) (string, error) {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return "", err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
+func XAdd(conn redigo.Conn, key string, maxlen int, v interface{}) (string, error) {
 	if maxlen == 0 {
 		maxlen = 10000
 	}
@@ -58,15 +50,7 @@ func XAdd(redigoAny interface{}, key string, maxlen int, v interface{}) (string,
 }
 
 // XAddPipeline xadd的pipeline模式
-func XAddPipeline(redigoAny interface{}, key string, maxlen int, v ...interface{}) ([]string, error) {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return nil, err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
+func XAddPipeline(conn redigo.Conn, key string, maxlen int, v ...interface{}) ([]string, error) {
 	if maxlen == 0 {
 		maxlen = 10000
 	}
@@ -81,7 +65,7 @@ func XAddPipeline(redigoAny interface{}, key string, maxlen int, v ...interface{
 			return nil, err
 		}
 	}
-	err = conn.Flush()
+	err := conn.Flush()
 	if err != nil {
 		return nil, err
 	}
@@ -94,15 +78,7 @@ func XAddPipeline(redigoAny interface{}, key string, maxlen int, v ...interface{
 }
 
 // XRead v 结构体指针, id 有2个特殊值: 0-0 从头开始读, $ 从加入时开始读
-func XRead(redigoAny interface{}, key, id string, v interface{}, block int64) (bool, string, error) {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return false, "", err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
+func XRead(conn redigo.Conn, key, id string, v interface{}, block int64) (bool, string, error) {
 	if block == 0 {
 		block = 1000
 	}
@@ -126,15 +102,7 @@ func XRead(redigoAny interface{}, key, id string, v interface{}, block int64) (b
 }
 
 // XReadGroup v 结构体指针
-func XReadGroup(redigoAny interface{}, key, groupName, consumerName, id string, v interface{}, block int, isAck bool) (bool, string, error) {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return false, "", err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
+func XReadGroup(conn redigo.Conn, key, groupName, consumerName, id string, v interface{}, block int, isAck bool) (bool, string, error) {
 	if block == 0 {
 		block = 1000
 	}
@@ -165,30 +133,14 @@ func XReadGroup(redigoAny interface{}, key, groupName, consumerName, id string, 
 }
 
 // XGroupCreate 创建消费者组
-func XGroupCreate(redigoAny interface{}, key, groupName string) error {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
-	_, err = conn.Do("XGROUP", "CREATE", key, groupName, "$", "MKSTREAM")
+func XGroupCreate(conn redigo.Conn, key, groupName string) error {
+	_, err := conn.Do("XGROUP", "CREATE", key, groupName, "$", "MKSTREAM")
 	return err
 }
 
 // XGroupDestroy 销毁消费者组
-func XGroupDestroy(redigoAny interface{}, key, groupName string) error {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
-	_, err = redigo.Bytes(conn.Do("XGROUP", "DESTROY", key, groupName))
+func XGroupDestroy(conn redigo.Conn, key, groupName string) error {
+	_, err := redigo.Bytes(conn.Do("XGROUP", "DESTROY", key, groupName))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}

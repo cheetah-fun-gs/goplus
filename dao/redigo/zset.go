@@ -9,15 +9,7 @@ import (
 )
 
 // ZFind 查找 member
-func ZFind(redigoAny interface{}, key, v interface{}, isReverse bool) (ok bool, rank int, score float64, err error) {
-	isPool, conn, err := AssertConn(redigoAny)
-	if err != nil {
-		return
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
+func ZFind(conn redigo.Conn, key, v interface{}, isReverse bool) (ok bool, rank int, score float64, err error) {
 	member, err := jsonplus.ToJSON(v)
 	if err != nil {
 		return
