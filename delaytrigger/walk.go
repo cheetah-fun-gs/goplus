@@ -3,6 +3,7 @@ package delaytrigger
 import (
 	"context"
 	"fmt"
+	"time"
 
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -14,9 +15,9 @@ type WalkStop func() bool
 type WalkHandle func(targetID string, eventData interface{}) error
 
 // WalkByParam 遍历
-func (trigger *DelayTrigger) WalkByParam(walkID string, ids []string, statuses []EventStatus, handle WalkHandle, stop WalkStop) (err error) {
+func (trigger *DelayTrigger) WalkByParam(walkID string, param *Param, handle WalkHandle, stop WalkStop) (err error) {
 	// 获取所有事件信息
-	events, err := trigger.GetEventsByParam(ids, statuses)
+	events, err := trigger.GetEventsByParam(param)
 	if err != nil {
 		return err
 	}
@@ -80,10 +81,25 @@ func (trigger *DelayTrigger) WalkByParam(walkID string, ids []string, statuses [
 
 // WalkActived 遍历活跃
 func (trigger *DelayTrigger) WalkActived(walkID string, handle WalkHandle, stop WalkStop) (err error) {
-	return trigger.WalkByParam(walkID, []string{}, []EventStatus{EventStatusActived}, handle, stop)
+	now := time.Now()
+	param := &Param{
+		Statuses: []EventStatus{EventStatusActived},
+		TriggerTsRange: &TriggerTsRange{
+			Min: now.Unix(),
+		},
+	}
+	return trigger.WalkByParam(walkID, param, handle, stop)
 }
 
 // WalkActivedByEventID 遍历活跃 按 eventid
 func (trigger *DelayTrigger) WalkActivedByEventID(walkID string, ids []string, handle WalkHandle, stop WalkStop) (err error) {
-	return trigger.WalkByParam(walkID, ids, []EventStatus{EventStatusActived}, handle, stop)
+	now := time.Now()
+	param := &Param{
+		IDS:      ids,
+		Statuses: []EventStatus{EventStatusActived},
+		TriggerTsRange: &TriggerTsRange{
+			Min: now.Unix(),
+		},
+	}
+	return trigger.WalkByParam(walkID, param, handle, stop)
 }

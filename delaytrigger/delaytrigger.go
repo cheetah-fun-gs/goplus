@@ -3,6 +3,7 @@ package delaytrigger
 
 import (
 	"fmt"
+	"time"
 
 	redigoplus "github.com/cheetah-fun-gs/goplus/dao/redigo"
 	"github.com/cheetah-fun-gs/goplus/logger"
@@ -73,20 +74,44 @@ func isMathStatus(status EventStatus, statuses []EventStatus) bool {
 	return false
 }
 
+// TriggerTsRange 触发时间范围
+type TriggerTsRange struct {
+	Min int64
+	Max int64
+}
+
+// Param 参数
+type Param struct {
+	IDS            []string
+	Statuses       []EventStatus
+	TriggerTsRange *TriggerTsRange
+}
+
 // GetEventsByParam 获取指定事件 ids statuses 为空表示 全匹配
-func (trigger *DelayTrigger) GetEventsByParam(ids []string, statuses []EventStatus) ([]*Event, error) {
+func (trigger *DelayTrigger) GetEventsByParam(param *Param) ([]*Event, error) {
+	// 格式化参数
+	if param == nil {
+		param = &Param{
+			IDS:            []string{},
+			Statuses:       []EventStatus{},
+			TriggerTsRange: &TriggerTsRange{},
+		}
+	} else if param.TriggerTsRange == nil {
+		param.TriggerTsRange = &TriggerTsRange{}
+	}
+
 	conn := trigger.pool.Get()
 	defer conn.Close()
 
 	key := trigger.getTriggerKey()
 	events := []*Event{}
-	if len(ids) == 0 {
+	if len(param.IDS) == 0 {
 		if err := redigoplus.HVals(conn, key, &events); err != nil {
 			return nil, err
 		}
 	} else {
 		v := map[string]interface{}{}
-		for _, i := range ids {
+		for _, i := range param.IDS {
 			v[i] = &Event{}
 		}
 		if err := redigoplus.HMGet(conn, key, v); err != nil {
@@ -99,7 +124,9 @@ func (trigger *DelayTrigger) GetEventsByParam(ids []string, statuses []EventStat
 
 	rs := []*Event{}
 	for _, event := range events {
-		if isMathStatus(event.Status, statuses) {
+		if isMathStatus(event.Status, param.Statuses) &&
+			event.TriggerTs >= param.TriggerTsRange.Min &&
+			(param.TriggerTsRange.Max == 0 || event.TriggerTs < param.TriggerTsRange.Max) {
 			rs = append(rs, event)
 		}
 	}
@@ -113,8 +140,8 @@ type EventAndCount struct {
 }
 
 // GetEventsAndCountsByParam 获取所有事件信息
-func (trigger *DelayTrigger) GetEventsAndCountsByParam(ids []string, statuses []EventStatus) (int, []*EventAndCount, error) {
-	events, err := trigger.GetEventsByParam(ids, statuses)
+func (trigger *DelayTrigger) GetEventsAndCountsByParam(param *Param) (int, []*EventAndCount, error) {
+	events, err := trigger.GetEventsByParam(param)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -171,30 +198,60 @@ func (trigger *DelayTrigger) getTargetCounts(ids []string) ([]int, error) {
 
 // GetEvents 获得所有事件
 func (trigger *DelayTrigger) GetEvents() ([]*Event, error) {
-	return trigger.GetEventsByParam([]string{}, []EventStatus{})
+	return trigger.GetEventsByParam(nil)
 }
 
 // GetActivedEvents 获得所有活跃事件
 func (trigger *DelayTrigger) GetActivedEvents() ([]*Event, error) {
-	return trigger.GetEventsByParam([]string{}, []EventStatus{EventStatusActived})
+	now := time.Now()
+	param := &Param{
+		Statuses: []EventStatus{EventStatusActived},
+		TriggerTsRange: &TriggerTsRange{
+			Min: now.Unix(),
+		},
+	}
+	return trigger.GetEventsByParam(param)
 }
 
 // GetActivedEventsByID 按事件id获得所有活跃事件
 func (trigger *DelayTrigger) GetActivedEventsByID(ids []string) ([]*Event, error) {
-	return trigger.GetEventsByParam(ids, []EventStatus{EventStatusActived})
+	now := time.Now()
+	param := &Param{
+		IDS:      ids,
+		Statuses: []EventStatus{EventStatusActived},
+		TriggerTsRange: &TriggerTsRange{
+			Min: now.Unix(),
+		},
+	}
+	return trigger.GetEventsByParam(param)
 }
 
 // GetEventsAndCounts  获得所有事件 和 目标数
 func (trigger *DelayTrigger) GetEventsAndCounts() (int, []*EventAndCount, error) {
-	return trigger.GetEventsAndCountsByParam([]string{}, []EventStatus{})
+	return trigger.GetEventsAndCountsByParam(nil)
 }
 
 // GetActivedEventsAndCounts  获得所有活跃事件 和 目标数
 func (trigger *DelayTrigger) GetActivedEventsAndCounts() (int, []*EventAndCount, error) {
-	return trigger.GetEventsAndCountsByParam([]string{}, []EventStatus{EventStatusActived})
+	now := time.Now()
+	param := &Param{
+		Statuses: []EventStatus{EventStatusActived},
+		TriggerTsRange: &TriggerTsRange{
+			Min: now.Unix(),
+		},
+	}
+	return trigger.GetEventsAndCountsByParam(param)
 }
 
 // GetActivedEventsAndCountsByID  获得所有活跃事件 和 目标数
 func (trigger *DelayTrigger) GetActivedEventsAndCountsByID(ids []string) (int, []*EventAndCount, error) {
-	return trigger.GetEventsAndCountsByParam(ids, []EventStatus{EventStatusActived})
+	now := time.Now()
+	param := &Param{
+		IDS:      ids,
+		Statuses: []EventStatus{EventStatusActived},
+		TriggerTsRange: &TriggerTsRange{
+			Min: now.Unix(),
+		},
+	}
+	return trigger.GetEventsAndCountsByParam(param)
 }

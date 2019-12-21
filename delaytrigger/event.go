@@ -24,7 +24,7 @@ type Event struct {
 	Status    EventStatus `json:"status,omitempty"`     // 状态
 	TriggerTs int64       `json:"trigger_ts,omitempty"` // 触发时间戳
 	Data      interface{} `json:"data,omitempty"`       // 事件数据
-	IsKeep    bool        `json:"is_keep,omitempty"`    // 目标处理完毕后是否保留, 不保留会自动反注册
+	IsKeep    bool        `json:"is_keep,omitempty"`    // 目标处理完毕后是否保留事件, 不保留会自动反注册
 }
 
 // EventRegister 注册自定义事件 isCover 是否覆盖
