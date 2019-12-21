@@ -207,7 +207,7 @@ func (trigger *DelayTrigger) GetActivedEvents() ([]*Event, error) {
 	param := &Param{
 		Statuses: []EventStatus{EventStatusActived},
 		TriggerTsRange: &TriggerTsRange{
-			Min: now.Unix(),
+			Max: now.Unix(),
 		},
 	}
 	return trigger.GetEventsByParam(param)
@@ -220,7 +220,7 @@ func (trigger *DelayTrigger) GetActivedEventsByID(ids []string) ([]*Event, error
 		IDS:      ids,
 		Statuses: []EventStatus{EventStatusActived},
 		TriggerTsRange: &TriggerTsRange{
-			Min: now.Unix(),
+			Max: now.Unix(),
 		},
 	}
 	return trigger.GetEventsByParam(param)
