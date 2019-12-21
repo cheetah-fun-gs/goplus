@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	redigoplus "github.com/cheetah-fun-gs/goplus/dao/redigo"
 	uuidplus "github.com/cheetah-fun-gs/goplus/uuid"
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -13,23 +12,12 @@ import (
 var ErrorLocked = fmt.Errorf("locked")
 
 // Lock 简单锁: 超时释放, 秒级, 无需解锁
-func Lock(redigoAny interface{}, name string, timeout int) error {
-	isPool, conn, err := redigoplus.AssertConn(redigoAny)
-	if err != nil {
-		return err
-	}
-	if isPool {
-		defer conn.Close()
-	}
-
-	ok, err := redigo.String(conn.Do("SET", name, "", "EX", fmt.Sprintf("%d", timeout), "NX"))
+func Lock(conn redigo.Conn, name string, expire int) error {
+	ok, err := redigo.String(conn.Do("SET", name, "1", "EX", expire, "NX"))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
-	if err == redigo.ErrNil {
-		return ErrorLocked
-	}
-	if ok == "" {
+	if err == redigo.ErrNil || ok != "OK" {
 		return ErrorLocked
 	}
 	return nil
@@ -37,28 +25,28 @@ func Lock(redigoAny interface{}, name string, timeout int) error {
 
 // Locker 守护锁: 需解锁, 进程退出自动解锁
 type Locker struct {
-	pool        *redigo.Pool
-	name        string
-	uuid        string
-	millisecond int
-	ticker      *time.Ticker
+	pool     *redigo.Pool
+	name     string // 锁名称 唯一
+	nonce    string // 随机字符串
+	interval int    // 锁间隔
+	ticker   *time.Ticker
 }
 
-// NewLocker 获取一个守护锁
-func NewLocker(pool *redigo.Pool, name string, millisecond int) (*Locker, error) {
-	if millisecond == 0 {
-		millisecond = 200
+// New 获取一个守护锁
+func New(pool *redigo.Pool, name string, v ...interface{}) (*Locker, error) {
+	interval := 200
+	if len(v) > 0 {
+		interval = v[0].(int)
 	}
 
-	uid := uuidplus.NewV4()
-	ticker := time.NewTicker(time.Duration(millisecond) * time.Millisecond)
+	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
 
 	locker := &Locker{
-		pool:        pool,
-		name:        name,
-		uuid:        uid.Base62(),
-		millisecond: 2 * millisecond,
-		ticker:      ticker,
+		pool:     pool,
+		name:     name,
+		nonce:    uuidplus.NewV4().Base62(),
+		interval: interval,
+		ticker:   ticker,
 	}
 	err := locker.lock()
 	if err != nil {
@@ -88,14 +76,11 @@ func (locker *Locker) lock() error {
 	conn := locker.pool.Get()
 	defer conn.Close()
 
-	ok, err := redigo.String(conn.Do("SET", locker.name, locker.uuid, "PX", locker.millisecond, "NX"))
+	ok, err := redigo.String(conn.Do("SET", locker.name, locker.nonce, "PX", 2*locker.interval, "NX"))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
-	if err == redigo.ErrNil {
-		return ErrorLocked
-	}
-	if ok == "" {
+	if err == redigo.ErrNil || ok != "OK" {
 		return ErrorLocked
 	}
 	return nil
@@ -118,14 +103,11 @@ func (locker *Locker) extend() error {
 	defer conn.Close()
 
 	script := redigo.NewScript(1, scriptContext)
-	ok, err := redigo.String(script.Do(conn, locker.name, locker.uuid, locker.millisecond))
+	ok, err := redigo.String(script.Do(conn, locker.name, locker.nonce, 2*locker.interval))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
-	if err == redigo.ErrNil {
-		return ErrorLocked
-	}
-	if ok == "" {
+	if err == redigo.ErrNil || ok != "OK" {
 		return ErrorLocked
 	}
 	return nil
