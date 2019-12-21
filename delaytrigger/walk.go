@@ -12,7 +12,7 @@ import (
 type WalkStop func() bool
 
 // WalkHandle 目标处理的回调
-type WalkHandle func(targetID string, eventData interface{}) error
+type WalkHandle func(targetID, eventData string) error
 
 // WalkByParam 遍历
 func (trigger *DelayTrigger) WalkByParam(walkID string, param *Param, handle WalkHandle, stop WalkStop) (err error) {

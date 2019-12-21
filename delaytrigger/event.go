@@ -23,7 +23,7 @@ type Event struct {
 	ID        string      `json:"id,omitempty"`         // ID
 	Status    EventStatus `json:"status,omitempty"`     // 状态
 	TriggerTs int64       `json:"trigger_ts,omitempty"` // 触发时间戳
-	Data      interface{} `json:"data,omitempty"`       // 事件数据
+	Data      string      `json:"data,omitempty"`       // 事件数据
 	IsKeep    bool        `json:"is_keep,omitempty"`    // 目标处理完毕后是否保留事件, 不保留会自动反注册
 }
 
@@ -52,7 +52,7 @@ func (trigger *DelayTrigger) EventRegister(event *Event, isCover bool) error {
 }
 
 // EventRegisterTimer 注册定时触发事件 isCover 是否覆盖
-func (trigger *DelayTrigger) EventRegisterTimer(eventID string, triggerTs int64, eventData interface{}, isCover bool) error {
+func (trigger *DelayTrigger) EventRegisterTimer(eventID string, triggerTs int64, eventData string, isCover bool) error {
 	now := time.Now()
 	if triggerTs > now.Unix()+triggerTsMax || triggerTs < now.Unix()+triggerTsMin {
 		return fmt.Errorf("TriggerTs is our range")
