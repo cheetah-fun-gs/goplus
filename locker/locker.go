@@ -1,4 +1,4 @@
-package redigo
+package locker
 
 import (
 	"fmt"
