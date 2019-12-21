@@ -85,7 +85,7 @@ func (trigger *DelayTrigger) WalkActived(walkID string, handle WalkHandle, stop 
 	param := &Param{
 		Statuses: []EventStatus{EventStatusActived},
 		TriggerTsRange: &TriggerTsRange{
-			Min: now.Unix(),
+			Max: now.Unix(),
 		},
 	}
 	return trigger.WalkByParam(walkID, param, handle, stop)
@@ -98,7 +98,7 @@ func (trigger *DelayTrigger) WalkActivedByEventID(walkID string, ids []string, h
 		IDS:      ids,
 		Statuses: []EventStatus{EventStatusActived},
 		TriggerTsRange: &TriggerTsRange{
-			Min: now.Unix(),
+			Max: now.Unix(),
 		},
 	}
 	return trigger.WalkByParam(walkID, param, handle, stop)
