@@ -13,6 +13,9 @@ var ErrorLocked = fmt.Errorf("locked")
 
 // Lock 简单锁: 超时释放, 秒级, 无需解锁
 func Lock(conn redigo.Conn, name string, expire int) error {
+	if expire < 1 {
+		expire = 1
+	}
 	ok, err := redigo.String(conn.Do("SET", name, "1", "EX", expire, "NX"))
 	if err != nil && err != redigo.ErrNil {
 		return err
@@ -23,6 +26,11 @@ func Lock(conn redigo.Conn, name string, expire int) error {
 	return nil
 }
 
+const (
+	defaultInterval = 500  // 默认间隔 毫秒
+	deleteInterval  = 1000 // 执行删除锁操作的最小间隔 毫秒
+)
+
 // Locker 守护锁: 需解锁, 进程退出自动解锁
 type Locker struct {
 	pool     *redigo.Pool
@@ -30,13 +38,17 @@ type Locker struct {
 	nonce    string // 随机字符串
 	interval int    // 锁间隔
 	ticker   *time.Ticker
+	isClose  bool // 是否已经关闭 在锁被覆盖的情况下会被标记
 }
 
 // New 获取一个守护锁
 func New(pool *redigo.Pool, name string, v ...interface{}) (*Locker, error) {
-	interval := 200
+	interval := defaultInterval
 	if len(v) > 0 {
 		interval = v[0].(int)
+		if interval < 1 {
+			interval = 1
+		}
 	}
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
@@ -60,6 +72,7 @@ func New(pool *redigo.Pool, name string, v ...interface{}) (*Locker, error) {
 			err := locker.extend()
 			if err != nil {
 				locker.ticker.Stop()
+				locker.isClose = true // 锁出错了 被覆盖了 标记已关闭
 			}
 		}
 	}()
@@ -69,7 +82,16 @@ func New(pool *redigo.Pool, name string, v ...interface{}) (*Locker, error) {
 
 // Close 守护锁解锁
 func (locker *Locker) Close() {
-	locker.ticker.Stop()
+	if !locker.isClose {
+		locker.ticker.Stop()
+		if locker.interval > deleteInterval { // 间隔太长需要解锁
+			conn := locker.pool.Get()
+			defer conn.Close()
+
+			conn.Do("DEL", locker.name)
+		}
+		locker.isClose = true // 标记已关闭
+	}
 }
 
 func (locker *Locker) lock() error {
