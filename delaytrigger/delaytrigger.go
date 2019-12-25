@@ -237,7 +237,7 @@ func (trigger *DelayTrigger) GetActivedEventsAndCounts() (int, []*EventAndCount,
 	param := &Param{
 		Statuses: []EventStatus{EventStatusActived},
 		TriggerTsRange: &TriggerTsRange{
-			Min: now.Unix(),
+			Max: now.Unix(),
 		},
 	}
 	return trigger.GetEventsAndCountsByParam(param)
@@ -250,7 +250,7 @@ func (trigger *DelayTrigger) GetActivedEventsAndCountsByID(ids []string) (int, [
 		IDS:      ids,
 		Statuses: []EventStatus{EventStatusActived},
 		TriggerTsRange: &TriggerTsRange{
-			Min: now.Unix(),
+			Max: now.Unix(),
 		},
 	}
 	return trigger.GetEventsAndCountsByParam(param)
