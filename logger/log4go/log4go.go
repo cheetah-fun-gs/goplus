@@ -47,9 +47,8 @@ func New(name string, c *Config) *Logger {
 			}
 		}
 
-		fileOut := log4go.NewFileLogWriter(c.Path, true)
+		fileOut := NewTimeFileLogWriter(c.Path, RotateIntervalDaily)
 		fileOut.SetFormat(fileFormat)
-		fileOut.SetRotateDaily(true)
 		logger.AddFilter("file", log4go.FINEST, fileOut)
 	}
 
