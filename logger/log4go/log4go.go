@@ -29,7 +29,7 @@ type Logger struct {
 // New ...
 func New(name string, c *Config) *Logger {
 	logger := make(log4go.Logger)
-	fileFormat := "[%T %D] [%L] %M"
+	fileFormat := "[%D %T] [%L] %M"
 	if c.Format != "" {
 		fileFormat = c.Format
 	}
@@ -72,7 +72,7 @@ func callerSource(depth int) string {
 	return src
 }
 
-func (logger *Logger) to(ctx context.Context, format string, v ...interface{}) (string, []interface{}) {
+func (logger *Logger) toc(ctx context.Context, format string, v ...interface{}) (string, []interface{}) {
 	var headFormat string
 	if logger.c.CallerDepth == 0 {
 		headFormat = fmt.Sprintf("(%s)", callerSource(4))
@@ -89,28 +89,64 @@ func (logger *Logger) to(ctx context.Context, format string, v ...interface{}) (
 	return headFormat + format, v
 }
 
-// Debug Debug
-func (logger *Logger) Debug(ctx context.Context, format string, v ...interface{}) {
+func (logger *Logger) to(format string, v ...interface{}) (string, []interface{}) {
+	var headFormat string
+	if logger.c.CallerDepth == 0 {
+		headFormat = fmt.Sprintf("(%s)", callerSource(4))
+	} else if logger.c.CallerDepth > 0 {
+		headFormat = fmt.Sprintf("(%s)", callerSource(logger.c.CallerDepth))
+	}
+	return headFormat + format, v
+}
+
+// Debugc Debug
+func (logger *Logger) Debugc(ctx context.Context, format string, v ...interface{}) {
 	if logger.c.IsDebugMode {
-		format, v = logger.to(ctx, format, v...)
+		format, v = logger.toc(ctx, format, v...)
+		logger.Logger.Debug(format, v...)
+	}
+}
+
+// Infoc Info
+func (logger *Logger) Infoc(ctx context.Context, format string, v ...interface{}) {
+	format, v = logger.toc(ctx, format, v...)
+	logger.Logger.Info(format, v...)
+}
+
+// Warnc Warn
+func (logger *Logger) Warnc(ctx context.Context, format string, v ...interface{}) {
+	format, v = logger.toc(ctx, format, v...)
+	logger.Logger.Warn(format, v...)
+}
+
+// Errorc Error
+func (logger *Logger) Errorc(ctx context.Context, format string, v ...interface{}) {
+	format, v = logger.toc(ctx, format, v...)
+	logger.Logger.Error(format, v...)
+}
+
+// Debug Debug
+func (logger *Logger) Debug(format string, v ...interface{}) {
+	if logger.c.IsDebugMode {
+		format, v = logger.to(format, v...)
 		logger.Logger.Debug(format, v...)
 	}
 }
 
 // Info Info
-func (logger *Logger) Info(ctx context.Context, format string, v ...interface{}) {
-	format, v = logger.to(ctx, format, v...)
+func (logger *Logger) Info(format string, v ...interface{}) {
+	format, v = logger.to(format, v...)
 	logger.Logger.Info(format, v...)
 }
 
 // Warn Warn
-func (logger *Logger) Warn(ctx context.Context, format string, v ...interface{}) {
-	format, v = logger.to(ctx, format, v...)
+func (logger *Logger) Warn(format string, v ...interface{}) {
+	format, v = logger.to(format, v...)
 	logger.Logger.Warn(format, v...)
 }
 
 // Error Error
-func (logger *Logger) Error(ctx context.Context, format string, v ...interface{}) {
-	format, v = logger.to(ctx, format, v...)
+func (logger *Logger) Error(format string, v ...interface{}) {
+	format, v = logger.to(format, v...)
 	logger.Logger.Error(format, v...)
 }

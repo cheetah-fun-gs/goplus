@@ -7,10 +7,14 @@ import (
 
 // Logger 日志器
 type Logger interface {
-	Debug(ctx context.Context, format string, v ...interface{})
-	Info(ctx context.Context, format string, v ...interface{})
-	Warn(ctx context.Context, format string, v ...interface{})
-	Error(ctx context.Context, format string, v ...interface{})
+	Debug(format string, v ...interface{})
+	Info(format string, v ...interface{})
+	Warn(format string, v ...interface{})
+	Error(format string, v ...interface{})
+	Debugc(ctx context.Context, format string, v ...interface{})
+	Infoc(ctx context.Context, format string, v ...interface{})
+	Warnc(ctx context.Context, format string, v ...interface{})
+	Errorc(ctx context.Context, format string, v ...interface{})
 }
 
 func logPrintf(ctx context.Context, format string, v ...interface{}) {
@@ -26,8 +30,8 @@ type DefaultLogger struct {
 	IsDebugMode bool // 是否 debug 模式
 }
 
-// Debug 级别日志
-func (logger *DefaultLogger) Debug(ctx context.Context, format string, v ...interface{}) {
+// Debugc 级别日志
+func (logger *DefaultLogger) Debugc(ctx context.Context, format string, v ...interface{}) {
 	if logger.IsDebugMode {
 		log.SetPrefix("[Debug] ")
 		logPrintf(ctx, format, v...)
@@ -35,24 +39,54 @@ func (logger *DefaultLogger) Debug(ctx context.Context, format string, v ...inte
 	return
 }
 
-// Info 级别日志
-func (logger *DefaultLogger) Info(ctx context.Context, format string, v ...interface{}) {
+// Infoc 级别日志
+func (logger *DefaultLogger) Infoc(ctx context.Context, format string, v ...interface{}) {
 	log.SetPrefix("[Info] ")
 	logPrintf(ctx, format, v...)
 	return
 }
 
-// Warn 级别日志
-func (logger *DefaultLogger) Warn(ctx context.Context, format string, v ...interface{}) {
+// Warnc 级别日志
+func (logger *DefaultLogger) Warnc(ctx context.Context, format string, v ...interface{}) {
 	log.SetPrefix("[Warn] ")
 	logPrintf(ctx, format, v...)
 	return
 }
 
-// Error 级别日志
-func (logger *DefaultLogger) Error(ctx context.Context, format string, v ...interface{}) {
+// Errorc 级别日志
+func (logger *DefaultLogger) Errorc(ctx context.Context, format string, v ...interface{}) {
 	log.SetPrefix("[Error] ")
 	logPrintf(ctx, format, v...)
+	return
+}
+
+// Debug 级别日志
+func (logger *DefaultLogger) Debug(format string, v ...interface{}) {
+	if logger.IsDebugMode {
+		log.SetPrefix("[Debug] ")
+		log.Printf(format, v...)
+	}
+	return
+}
+
+// Info 级别日志
+func (logger *DefaultLogger) Info(format string, v ...interface{}) {
+	log.SetPrefix("[Info] ")
+	log.Printf(format, v...)
+	return
+}
+
+// Warn 级别日志
+func (logger *DefaultLogger) Warn(format string, v ...interface{}) {
+	log.SetPrefix("[Warn] ")
+	log.Printf(format, v...)
+	return
+}
+
+// Error 级别日志
+func (logger *DefaultLogger) Error(format string, v ...interface{}) {
+	log.SetPrefix("[Error] ")
+	log.Printf(format, v...)
 	return
 }
 
