@@ -1,7 +1,6 @@
 package delaytrigger
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -33,12 +32,11 @@ func (trigger *DelayTrigger) WalkByParam(walkID string, param *Param, handle Wal
 	}()
 
 	// 轮询事件
-	ctx := context.Background()
 	for _, event := range events {
 		for {
 			// 判断是否退出
 			if stop() {
-				trigger.logger.Info(ctx, "delaytrigger %v walk %v stop", trigger.name, walkID)
+				trigger.logger.Info("delaytrigger %v walk %v stop", trigger.name, walkID)
 				return nil
 			}
 
@@ -51,13 +49,13 @@ func (trigger *DelayTrigger) WalkByParam(walkID string, param *Param, handle Wal
 
 			// 没有新对象 事件处理完毕
 			if err == redigo.ErrNil {
-				trigger.logger.Info(ctx, "delaytrigger %v walk %v event %v finish", trigger.name, walkID, event.ID)
+				trigger.logger.Info("delaytrigger %v walk %v event %v finish", trigger.name, walkID, event.ID)
 				if !event.IsKeep {
 					err = trigger.EventUnregister(event.ID)
 					if err != nil {
-						trigger.logger.Warn(ctx, "delaytrigger %v walk %v event %v Unregister err: %v", trigger.name, walkID, event.ID, err)
+						trigger.logger.Warn("delaytrigger %v walk %v event %v Unregister err: %v", trigger.name, walkID, event.ID, err)
 					} else {
-						trigger.logger.Info(ctx, "delaytrigger %v walk %v event %v Unregister success", trigger.name, walkID, event.ID)
+						trigger.logger.Info("delaytrigger %v walk %v event %v Unregister success", trigger.name, walkID, event.ID)
 					}
 				}
 				break
@@ -66,14 +64,14 @@ func (trigger *DelayTrigger) WalkByParam(walkID string, param *Param, handle Wal
 			// 处理对象
 			err = handle(targetID, event.Data)
 			if err != nil {
-				trigger.logger.Warn(ctx, "delaytrigger %v walk %v event %v target %v data %v handle err: %v", trigger.name, walkID, event.ID, targetID, event.Data, err)
+				trigger.logger.Warn("delaytrigger %v walk %v event %v target %v data %v handle err: %v", trigger.name, walkID, event.ID, targetID, event.Data, err)
 			} else {
-				trigger.logger.Info(ctx, "delaytrigger %v walk %v event %v target %v data %v handle success", trigger.name, walkID, event.ID, targetID, event.Data)
+				trigger.logger.Info("delaytrigger %v walk %v event %v target %v data %v handle success", trigger.name, walkID, event.ID, targetID, event.Data)
 			}
 		}
 	}
 
-	trigger.logger.Info(ctx, "delaytrigger %v walk %v finish", trigger.name, walkID)
+	trigger.logger.Info("delaytrigger %v walk %v finish", trigger.name, walkID)
 	return nil
 }
 
