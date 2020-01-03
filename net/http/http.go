@@ -1,4 +1,3 @@
-// Package http 网络请求方法
 package http
 
 import (
@@ -11,34 +10,16 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
-// Client Client
-type Client struct {
-	Transport     http.RoundTripper
-	CheckRedirect func(req *http.Request, via []*http.Request) error
-	Jar           http.CookieJar
-	Timeout       time.Duration
-}
-
-func (client *Client) httpClient() *http.Client {
-	return &http.Client{
-		Transport:     client.Transport,
-		CheckRedirect: client.CheckRedirect,
-		Jar:           client.Jar,
-		Timeout:       client.Timeout,
-	}
-}
-
-// JSON post 方式获取 json返回
-func (client *Client) JSON(url string, request interface{}, response interface{}) error {
+// JSON method:post req:json resp:json
+func (client *Client) JSON(toURL string, request interface{}, response interface{}) error {
 	postBody, err := json.Marshal(request)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", url, strings.NewReader(string(postBody)))
+	req, err := http.NewRequest("POST", toURL, strings.NewReader(string(postBody)))
 	if err != nil {
 		return err
 	}
@@ -66,9 +47,9 @@ func (client *Client) JSON(url string, request interface{}, response interface{}
 	return nil
 }
 
-// GetJSON 用get方式获取json返回
-func (client *Client) GetJSON(url string, response interface{}) error {
-	resp, err := client.httpClient().Get(url)
+// GetJSON method:get resp:json
+func (client *Client) GetJSON(toURL string, response interface{}) error {
+	resp, err := client.httpClient().Get(toURL)
 	if err != nil {
 		return err
 	}
@@ -90,13 +71,13 @@ func (client *Client) GetJSON(url string, response interface{}) error {
 	return nil
 }
 
-// PostJSON 用post方式获取json返回
-func (client *Client) PostJSON(url string, response interface{}) error {
-	req, err := http.NewRequest("POST", url, strings.NewReader(""))
+// PostJSON method:get resp:json
+func (client *Client) PostJSON(toURL string, response interface{}) error {
+	req, err := http.NewRequest("POST", toURL, strings.NewReader(""))
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
+	req.Header.Set("Content-Type", "application/x-www-form-toURLencoded;charset=utf-8")
 
 	resp, err := client.httpClient().Do(req)
 	if err != nil {
@@ -128,8 +109,8 @@ type MultipartFormField struct {
 	FileName   string
 }
 
-// JSONMultipartForm 上传文件或其他表单数据
-func (client *Client) JSONMultipartForm(url string, fields []*MultipartFormField, response interface{}) error {
+// JSONMultipartForm 上传文件 resp:json
+func (client *Client) JSONMultipartForm(toURL string, fields []*MultipartFormField, response interface{}) error {
 	bodyBuf := &bytes.Buffer{}
 	bodyWriter := multipart.NewWriter(bodyBuf)
 
@@ -164,7 +145,7 @@ func (client *Client) JSONMultipartForm(url string, fields []*MultipartFormField
 	contentType := bodyWriter.FormDataContentType()
 	bodyWriter.Close()
 
-	resp, err := client.httpClient().Post(url, contentType, bodyBuf)
+	resp, err := client.httpClient().Post(toURL, contentType, bodyBuf)
 	if err != nil {
 		return err
 	}

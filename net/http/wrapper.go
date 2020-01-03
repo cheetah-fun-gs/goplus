@@ -10,22 +10,22 @@ func defaultClient() *Client {
 	}
 }
 
-// JSON post 方式获取 json返回
-func JSON(url string, request interface{}, response interface{}) error {
-	return defaultClient().JSON(url, request, response)
+// JSON method:post req:json resp:json
+func JSON(toURL string, request interface{}, response interface{}) error {
+	return defaultClient().JSON(toURL, request, response)
 }
 
-// GetJSON 用get方式获取json返回
-func GetJSON(url string, response interface{}) error {
-	return defaultClient().GetJSON(url, response)
+// GetJSON method:get resp:json
+func GetJSON(toURL string, response interface{}) error {
+	return defaultClient().GetJSON(toURL, response)
 }
 
-// PostJSON 用post方式获取json返回
-func PostJSON(url string, response interface{}) error {
-	return defaultClient().PostJSON(url, response)
+// PostJSON method:get resp:json
+func PostJSON(toURL string, response interface{}) error {
+	return defaultClient().PostJSON(toURL, response)
 }
 
-// JSONMultipartForm 上传文件或其他表单数据
-func JSONMultipartForm(url string, fields []*MultipartFormField, response interface{}) error {
-	return defaultClient().JSONMultipartForm(url, fields, response)
+// JSONMultipartForm 上传文件 resp:json
+func JSONMultipartForm(toURL string, fields []*MultipartFormField, response interface{}) error {
+	return defaultClient().JSONMultipartForm(toURL, fields, response)
 }
