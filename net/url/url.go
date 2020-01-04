@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// ToRawQuery 结构体转换成 Request.URL.RawQuery; 不要使用浮点数
+// ToRawQuery 通过json 换成 Request.URL.RawQuery; 不要使用浮点数
 func ToRawQuery(v interface{}) (string, error) {
 	// struct to map
 	data, err := json.Marshal(v)

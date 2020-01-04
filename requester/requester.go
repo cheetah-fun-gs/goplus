@@ -3,11 +3,14 @@ package requester
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	urlplus "github.com/cheetah-fun-gs/goplus/net/url"
 )
 
 // Client Client
@@ -27,152 +30,306 @@ func (client *Client) httpClient() *http.Client {
 	}
 }
 
-// Get 使用get方法
-func (client *Client) Get(toURL string, v ...interface{}) *Request {
+// New 创建一个基础 Requester
+func (client *Client) New(method, toURL string) *Requester {
 	u, err := url.Parse(toURL)
 	if err != nil {
-		return &Request{
+		return &Requester{
 			Error: err,
 		}
 	}
-	req := &Request{
-		Client: client,
-		URL:    u,
-		method: "GET",
+	return &Requester{
+		client:     client.httpClient(),
+		url:        u,
+		method:     method,
+		rawData:    []byte{},
+		formFields: map[string][]string{},
+		formFiles:  []*FormFile{},
 	}
+}
+
+// Post 创建一个 POST Requester
+func (client *Client) Post(toURL string) *Requester {
+	return client.New("POST", toURL)
+}
+
+// PostData PostData
+func (client *Client) PostData(toURL string, v interface{}) *Requester {
+	return client.New("POST", toURL).SetRawData(v)
+}
+
+// PostJSON PostJSON
+func (client *Client) PostJSON(toURL string, v interface{}) *Requester {
+	req := client.New("POST", toURL).SetRawData(v)
+	req.contentType = "application/json"
+	return req
+}
+
+// Get 创建一个 GET Requester
+func (client *Client) Get(toURL string) *Requester {
+	return client.New("GET", toURL)
+}
+
+// Requester http.Request
+type Requester struct {
+	Error       error
+	client      *http.Client
+	url         *url.URL
+	request     *http.Request
+	method      string
+	contentType string
+	rawData     []byte
+	formFields  map[string][]string
+	formFiles   []*FormFile
+}
+
+// Client Client
+func (req *Requester) Client() *http.Client {
+	return req.client
+}
+
+// URL URL
+func (req *Requester) URL() *url.URL {
+	return req.url
+}
+
+// Request Request
+func (req *Requester) Request() *http.Request {
+	return req.request
+}
+
+// v string, map[string]string{}, struct
+func stringRawQuery(v ...interface{}) (string, error) {
+	splits := []string{}
 	for _, vv := range v {
-		req.AddRawQuery(vv)
-	}
-	return req
-}
-
-// Post 使用post方法
-func (client *Client) Post(toURL string, v ...interface{}) *Request {
-	u, err := url.Parse(toURL)
-	if err != nil {
-		return &Request{
-			Error: err,
-		}
-	}
-	req := &Request{
-		Client: client,
-		URL:    u,
-		method: "POST",
-	}
-	if len(v) > 0 {
-		var vv []byte
-		switch v[0].(type) {
-		case []byte:
-			vv = v[0].([]byte)
+		switch vv.(type) {
 		case string:
-			vv = []byte(v[0].(string))
+			splits = append(splits, vv.(string))
 		default:
-			var err error
-			vv, err = json.Marshal(v[0])
+			s, err := urlplus.ToRawQuery(vv)
 			if err != nil {
-				return &Request{
-					Error: err,
-				}
+				return "", err
 			}
+			splits = append(splits, s)
 		}
-		req.postData = vv
 	}
-	return req
+	return strings.Join(splits, "&"), nil
 }
 
-// Request http.Request
-type Request struct {
-	*Client
-	*url.URL
-	*http.Request
-	method   string
-	postData []byte
-	Error    error
-}
-
-// AddRawQuery 设置get form请求
-func (req *Request) AddRawQuery(v interface{}) *Request {
+// AddRawQuery 追加 RawQuery
+func (req *Requester) AddRawQuery(v ...interface{}) *Requester {
 	if req.Error != nil {
 		return req
 	}
-	var vv string
-	switch v.(type) {
-	case string:
-		vv = "&" + v.(string)
-	default:
-		var err error
-		vv, err = ToRawQuery(v)
-		if err != nil {
-			req.Error = err
-			return req
-		}
-	}
-	req.URL.RawQuery += "&" + vv
-	return req
-}
-
-func (req *Request) httpRequest() *Request {
-	if req.Error != nil {
-		return req
-	}
-	if req.Request != nil {
-		return req
-	}
-	httpReq, err := http.NewRequest(req.method, req.URL.String(), strings.NewReader(string(req.postData)))
+	s, err := stringRawQuery(v...)
 	if err != nil {
 		req.Error = err
 		return req
 	}
-	req.Request = httpReq
+	if req.url.RawQuery == "" {
+		req.url.RawQuery = s
+	} else {
+		req.url.RawQuery += "&" + s
+	}
 	return req
 }
 
-// JSONRequest json请求
-func (req *Request) JSONRequest() *Request {
-	req.httpRequest()
-	req.SetHeader("Content-Type", "application/json;charset=utf-8")
+// SetRawQuery 重设 RawQuery
+func (req *Requester) SetRawQuery(v ...interface{}) *Requester {
+	if req.Error != nil {
+		return req
+	}
+	s, err := stringRawQuery(v...)
+	if err != nil {
+		req.Error = err
+		return req
+	}
+	req.url.RawQuery = s
 	return req
 }
 
-// FormRequest json请求
-func (req *Request) FormRequest() *Request {
-	req.httpRequest()
-	req.SetHeader("Content-Type", "application/x-www-form-urlencode;charset=utf-8")
+// v string, []byte, map[string]string{}, struct
+func byteRawData(v interface{}) ([]byte, error) {
+	switch v.(type) {
+	case string:
+		return []byte(v.(string)), nil
+	case []byte:
+		return v.([]byte), nil
+	default:
+		d, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		return d, nil
+	}
+}
+
+// SetRawData 设置 RawData
+func (req *Requester) SetRawData(v interface{}) *Requester {
+	if req.Error != nil {
+		return req
+	}
+	d, err := byteRawData(v)
+	if err != nil {
+		req.Error = err
+		return req
+	}
+	req.rawData = d
+	return req
+}
+
+func toFormFields(v interface{}) (map[string][]string, error) {
+	m := map[string]interface{}{}
+	switch v.(type) {
+	case map[string]interface{}:
+		m = v.(map[string]interface{})
+	default:
+		// struct to map
+		data, err := json.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(data, &m)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	mm := map[string][]string{}
+	for key, val := range m {
+		mm[key] = []string{}
+		switch val.(type) {
+		case []interface{}:
+			for _, vv := range val.([]interface{}) {
+				mm[key] = append(mm[key], fmt.Sprintf("%v", vv))
+			}
+		default:
+			mm[key] = append(mm[key], fmt.Sprintf("%v", val))
+		}
+	}
+	return mm, nil
+}
+
+// SetFormFields 设置 formField
+func (req *Requester) SetFormFields(v interface{}) *Requester {
+	if req.Error != nil {
+		return req
+	}
+	m, err := toFormFields(v)
+	if err != nil {
+		req.Error = err
+		return req
+	}
+	req.formFields = m
+	return req
+}
+
+// AddFormField 追加 formField
+func (req *Requester) AddFormField(key string, val interface{}) *Requester {
+	if req.Error != nil {
+		return req
+	}
+	v, ok := req.formFields[key]
+	if !ok {
+		req.formFields[key] = []string{fmt.Sprintf("%v", val)}
+	} else {
+		v = append(v, fmt.Sprintf("%v", val))
+	}
+	return req
+}
+
+// SetFormField 设置 formField
+func (req *Requester) SetFormField(key string, val interface{}) *Requester {
+	if req.Error != nil {
+		return req
+	}
+	req.formFields[key] = []string{fmt.Sprintf("%v", val)}
+	return req
+}
+
+// AddFormFile 追加 formFile
+func (req *Requester) AddFormFile(files ...*FormFile) *Requester {
+	if req.Error != nil {
+		return req
+	}
+	req.formFiles = append(req.formFiles, files...)
+	return req
+}
+
+func (req *Requester) httpRequest() *Requester {
+	if req.Error != nil {
+		return req
+	}
+	if req.request != nil {
+		return req
+	}
+	if req.method != "POST" && (len(req.rawData) != 0 || len(req.formFields) != 0 || len(req.formFiles) != 0) {
+		req.Error = fmt.Errorf("have rawData, formField, formFile, use POST")
+		return req
+	}
+	if len(req.rawData) != 0 && (len(req.formFields) != 0 || len(req.formFiles) != 0) {
+		req.Error = fmt.Errorf("raw, form only choose one")
+		return req
+	}
+
+	var body io.Reader
+	if len(req.rawData) != 0 {
+		body = strings.NewReader(string(req.rawData))
+	} else {
+		var contentType string
+		var err error
+		contentType, body, err = buildFormData(req.formFields, req.formFiles)
+		if err != nil {
+			req.Error = err
+			return req
+		}
+		req.contentType = contentType
+	}
+
+	httpReq, err := http.NewRequest(req.method, req.url.String(), body)
+	if err != nil {
+		req.Error = err
+		return req
+	}
+	if req.contentType != "" {
+		httpReq.Header.Set("Content-Type", req.contentType)
+	}
+	req.request = httpReq
 	return req
 }
 
 // SetHeader 设置请求头
-func (req *Request) SetHeader(key, val string) *Request {
+func (req *Requester) SetHeader(key, val string) *Requester {
 	req.httpRequest()
 	if req.Error != nil {
 		return req
 	}
-	req.Request.Header.Set(key, val)
+	req.request.Header.Set(key, val)
 	return req
 }
 
 // AddHeader 添加请求头
-func (req *Request) AddHeader(key, val string) *Request {
+func (req *Requester) AddHeader(key, val string) *Requester {
 	req.httpRequest()
 	if req.Error != nil {
 		return req
 	}
-	req.Request.Header.Add(key, val)
+	req.request.Header.Add(key, val)
 	return req
 }
 
-// Response 获取响应
-func (req *Request) Response() (*http.Response, error) {
+// Do 获取响应
+func (req *Requester) Do() (*http.Response, error) {
 	req.httpRequest()
 	if req.Error != nil {
 		return nil, req.Error
 	}
-	return req.Client.httpClient().Do(req.Request)
+	return req.client.Do(req.request)
 }
 
-// DataResponse 获取响应二进制响应
-func (req *Request) DataResponse() ([]byte, error) {
-	resp, err := req.Response()
+// ReadData 获取响应二进制响应
+func (req *Requester) ReadData() ([]byte, error) {
+	resp, err := req.Do()
 	if err != nil {
 		return nil, err
 	}
@@ -184,18 +341,18 @@ func (req *Request) DataResponse() ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-// StringResponse 获取响应字符串响应
-func (req *Request) StringResponse() (string, error) {
-	data, err := req.DataResponse()
+// ReadString 获取响应字符串响应
+func (req *Requester) ReadString() (string, error) {
+	data, err := req.ReadData()
 	if err != nil {
 		return "", err
 	}
 	return string(data), nil
 }
 
-// JSONResponse 获取响应JSON响应
-func (req *Request) JSONResponse(v interface{}) error {
-	data, err := req.DataResponse()
+// ReadJSON 获取响应JSON响应
+func (req *Requester) ReadJSON(v interface{}) error {
+	data, err := req.ReadData()
 	if err != nil {
 		return err
 	}

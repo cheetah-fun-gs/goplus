@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+// 准备废弃 不要再使用
+
 // Client Client
 type Client struct {
 	Transport     http.RoundTripper
