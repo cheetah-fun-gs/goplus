@@ -10,7 +10,25 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
+
+// Client Client
+type Client struct {
+	Transport     http.RoundTripper
+	CheckRedirect func(req *http.Request, via []*http.Request) error
+	Jar           http.CookieJar
+	Timeout       time.Duration
+}
+
+func (client *Client) httpClient() *http.Client {
+	return &http.Client{
+		Transport:     client.Transport,
+		CheckRedirect: client.CheckRedirect,
+		Jar:           client.Jar,
+		Timeout:       client.Timeout,
+	}
+}
 
 // JSON method:post req:json resp:json
 func (client *Client) JSON(toURL string, request interface{}, response interface{}) error {

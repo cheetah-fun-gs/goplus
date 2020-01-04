@@ -29,13 +29,3 @@ func PostJSON(toURL string, response interface{}) error {
 func JSONMultipartForm(toURL string, fields []*MultipartFormField, response interface{}) error {
 	return defaultClient().JSONMultipartForm(toURL, fields, response)
 }
-
-// Get method:get resp:json
-func Get(toURL string, v ...interface{}) *Request {
-	return defaultClient().Get(toURL, v...)
-}
-
-// Post method:get resp:json
-func Post(toURL string, v ...interface{}) *Request {
-	return defaultClient().Post(toURL, v...)
-}
