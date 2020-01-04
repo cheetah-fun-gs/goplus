@@ -54,8 +54,10 @@ func (client *Client) Post(toURL string) *Requester {
 }
 
 // PostData PostData
-func (client *Client) PostData(toURL string, v interface{}) *Requester {
-	return client.New("POST", toURL).SetRawData(v)
+func (client *Client) PostData(toURL, contentType string, v interface{}) *Requester {
+	req := client.New("POST", toURL).SetRawData(v)
+	req.contentType = contentType
+	return req
 }
 
 // PostJSON PostJSON

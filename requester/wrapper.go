@@ -26,8 +26,8 @@ func Post(toURL string) *Requester {
 }
 
 // PostData PostData
-func PostData(toURL string, v interface{}) *Requester {
-	return defaultClient().PostData(toURL, v)
+func PostData(toURL, contentType string, v interface{}) *Requester {
+	return defaultClient().PostData(toURL, contentType, v)
 }
 
 // PostJSON PostJSON
