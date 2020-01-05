@@ -3,41 +3,52 @@ package url
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
+	"net/url"
+	"strconv"
 )
 
-// ToRawQuery 通过json 换成 Request.URL.RawQuery; 不要使用浮点数
-func ToRawQuery(v interface{}) (string, error) {
+func toString(v interface{}) string {
+	switch v.(type) {
+	case float64:
+		return strconv.Itoa(int(v.(float64)))
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+// ToValues 转换成 Values; 不要使用浮点数
+func ToValues(v interface{}) (url.Values, error) {
+	m := map[string]interface{}{}
 	// struct to map
 	data, err := json.Marshal(v)
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	err = json.Unmarshal(data, &m)
+	if err != nil {
+		return nil, err
 	}
 
-	m := map[string]interface{}{}
-	err = json.Unmarshal(data, &m)
+	values := url.Values{}
+	for key, val := range m {
+		values[key] = []string{}
+		switch val.(type) {
+		case []interface{}:
+			for _, vv := range val.([]interface{}) {
+				values[key] = append(values[key], toString(vv))
+			}
+		default:
+			values[key] = append(values[key], toString(val))
+		}
+	}
+	return values, nil
+}
+
+// ToRawQuery 转换 URL.RawQuery; 不要使用浮点数
+func ToRawQuery(v interface{}) (string, error) {
+	values, err := ToValues(v)
 	if err != nil {
 		return "", err
 	}
-
-	// 字典序排序
-	sortedKeys := make([]string, 0)
-	for k := range m {
-		sortedKeys = append(sortedKeys, k)
-	}
-	sort.Strings(sortedKeys)
-
-	// 对key=value的键值对用&连接起来，略过空值
-	splits := []string{}
-	for _, k := range sortedKeys {
-		v := m[k]
-		switch v.(type) {
-		case float64:
-			splits = append(splits, fmt.Sprintf("%s=%d", k, int(v.(float64))))
-		default:
-			splits = append(splits, fmt.Sprintf("%s=%v", k, v))
-		}
-	}
-	return strings.Join(splits, "&"), nil
+	return values.Encode(), nil
 }
