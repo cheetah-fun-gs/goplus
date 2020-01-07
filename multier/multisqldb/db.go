@@ -70,9 +70,18 @@ func RegisterWithInterceptor(name string, db *sql.DB, in *sqlplus.Interceptor) e
 	return nil
 }
 
-// Retrieve 获取 *redigo.Pool
+// Retrieve 获取 *sql.DB
 func Retrieve() *sql.DB {
 	return mutil[d].DB
+}
+
+// RetrieveAll 获取所有*sql.DB
+func RetrieveAll() map[string]*sql.DB {
+	r := map[string]*sql.DB{}
+	for k, v := range mutil {
+		r[k] = v.DB
+	}
+	return r
 }
 
 // RetrieveN 获取 *sql.DB
@@ -87,7 +96,7 @@ func RetrieveN(name string) (*sql.DB, error) {
 func MustRetrieveN(name string) *sql.DB {
 	c, err := RetrieveN(name)
 	if err != nil {
-		panic((err))
+		panic(err)
 	}
 	return c
 }

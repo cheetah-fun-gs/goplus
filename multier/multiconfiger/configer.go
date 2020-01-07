@@ -41,6 +41,11 @@ func Retrieve() configer.Configer {
 	return mutil[d]
 }
 
+// RetrieveAll 获取所有Configer
+func RetrieveAll() map[string]configer.Configer {
+	return mutil
+}
+
 // RetrieveN 获取Configer
 func RetrieveN(name string) (configer.Configer, error) {
 	if c, ok := mutil[name]; ok {

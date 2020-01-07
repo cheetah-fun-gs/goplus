@@ -41,6 +41,11 @@ func Retrieve() *mgo.Database {
 	return mutil[d]
 }
 
+// RetrieveAll 获取所有*mgo.Database
+func RetrieveAll() map[string]*mgo.Database {
+	return mutil
+}
+
 // RetrieveN 获取 mgo.Database
 func RetrieveN(name string) (*mgo.Database, error) {
 	if c, ok := mutil[name]; ok {

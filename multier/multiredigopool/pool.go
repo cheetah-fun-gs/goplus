@@ -41,6 +41,11 @@ func Retrieve() *redigo.Pool {
 	return mutil[d]
 }
 
+// RetrieveAll 获取所有*redigo.Pool
+func RetrieveAll() map[string]*redigo.Pool {
+	return mutil
+}
+
 // RetrieveN 获取 *redigo.Pool
 func RetrieveN(name string) (*redigo.Pool, error) {
 	if c, ok := mutil[name]; ok {

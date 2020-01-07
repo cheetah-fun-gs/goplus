@@ -41,6 +41,11 @@ func Retrieve() logger.Logger {
 	return mutil[d]
 }
 
+// RetrieveAll 获取所有logger.Logger
+func RetrieveAll() map[string]logger.Logger {
+	return mutil
+}
+
 // RetrieveN 获取 logger.Logger
 func RetrieveN(name string) (logger.Logger, error) {
 	if c, ok := mutil[name]; ok {
