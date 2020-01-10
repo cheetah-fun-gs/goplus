@@ -105,3 +105,14 @@ func StringsToMap(datas []string, v interface{}) error {
 	}
 	return FromJSON(stringsToMapJSON(datas), v)
 }
+
+// Convert 利用json转换结构
+func Convert(src, dst interface{}) error {
+	if v, err := ToJSON(src); err != nil {
+		return err
+	} else if err = FromJSON(v, dst); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
