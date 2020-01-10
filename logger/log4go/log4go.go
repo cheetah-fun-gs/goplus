@@ -27,7 +27,17 @@ type Logger struct {
 }
 
 // New ...
-func New(name string, c *Config) *Logger {
+func New(name string, v ...*Config) *Logger {
+	var c *Config
+	if len(v) == 0 {
+		c = &Config{}
+	} else {
+		c = v[0]
+	}
+	if c.CallerDepth == 0 {
+		c.CallerDepth = 3
+	}
+
 	logger := make(log4go.Logger)
 	fileFormat := "[%D %T] [%L] %M"
 	if c.Format != "" {
@@ -53,6 +63,7 @@ func New(name string, c *Config) *Logger {
 	}
 
 	if !c.IsDisableConsole {
+		// 调试控制台输出时记得Close
 		consoleOut := log4go.NewConsoleLogWriter()
 		consoleOut.SetFormat(consoleFormat)
 		logger.AddFilter("stdout", log4go.FINEST, consoleOut)
@@ -72,29 +83,18 @@ func callerSource(depth int) string {
 }
 
 func (logger *Logger) toc(ctx context.Context, format string, v ...interface{}) (string, []interface{}) {
-	var headFormat string
-	if logger.c.CallerDepth == 0 {
-		headFormat = fmt.Sprintf("(%s)", callerSource(4))
-	} else if logger.c.CallerDepth > 0 {
-		headFormat = fmt.Sprintf("(%s)", callerSource(logger.c.CallerDepth))
-	}
-
+	headFormat := fmt.Sprintf("(%s) ", callerSource(logger.c.CallerDepth))
 	if ctx == context.Background() || ctx == nil {
-		headFormat += " - "
+		headFormat += "- "
 	} else {
-		headFormat += " %v "
+		headFormat += "%v "
 		v = append([]interface{}{ctx}, v...)
 	}
 	return headFormat + format, v
 }
 
 func (logger *Logger) to(format string, v ...interface{}) (string, []interface{}) {
-	var headFormat string
-	if logger.c.CallerDepth == 0 {
-		headFormat = fmt.Sprintf("(%s)", callerSource(4))
-	} else if logger.c.CallerDepth > 0 {
-		headFormat = fmt.Sprintf("(%s)", callerSource(logger.c.CallerDepth))
-	}
+	headFormat := fmt.Sprintf("(%s) ", callerSource(logger.c.CallerDepth))
 	return headFormat + format, v
 }
 
