@@ -34,8 +34,8 @@ func New(name string, v ...*Config) *Logger {
 	} else {
 		c = v[0]
 	}
-	if c.CallerDepth == 0 {
-		c.CallerDepth = 3
+	if c.CallerDepth >= 0 {
+		c.CallerDepth += 3
 	}
 
 	logger := make(log4go.Logger)
