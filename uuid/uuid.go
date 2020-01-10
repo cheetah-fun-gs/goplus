@@ -47,25 +47,25 @@ func encodeHex(dst []byte, uuid UUID) {
 type UUID []byte
 
 // Base64 to Base64
-func (u *UUID) Base64() string {
-	return base64.RawURLEncoding.EncodeToString(*u)
+func (u UUID) Base64() string {
+	return base64.RawURLEncoding.EncodeToString(u)
 }
 
 // Base62 to Base62
-func (u *UUID) Base62() string {
+func (u UUID) Base62() string {
 	e := basen.NewBase62()
-	return e.Encode(*u)
+	return e.Encode(u)
 }
 
 // MD5 to MD5
-func (u *UUID) MD5() string {
-	return hex.EncodeToString(*u)
+func (u UUID) MD5() string {
+	return hex.EncodeToString(u)
 }
 
 // String to form xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-func (u *UUID) String() string {
+func (u UUID) String() string {
 	var buf [36]byte
-	encodeHex(buf[:], *u)
+	encodeHex(buf[:], u)
 	return string(buf[:])
 }
 

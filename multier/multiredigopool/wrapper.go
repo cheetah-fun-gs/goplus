@@ -19,7 +19,7 @@ func GetN(name string) (redigo.Conn, error) {
 
 // MustGetN ...
 func MustGetN(name string) redigo.Conn {
-	s, err := GetN(d)
+	s, err := GetN(name)
 	if err != nil {
 		panic(err)
 	}

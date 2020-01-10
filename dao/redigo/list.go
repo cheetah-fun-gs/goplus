@@ -1,86 +1,65 @@
 package redigo
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-
+	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	redigo "github.com/gomodule/redigo/redis"
 )
 
 // LPush LPush
-func LPush(conn redigo.Conn, key string, values ...interface{}) error {
-
-	args := make([]interface{}, 0)
-
-	args = append(args, key)
-	for _, v := range values {
-		data, err := json.Marshal(v)
+func LPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+	args := []interface{}{key}
+	for _, vv := range v {
+		data, err := jsonplus.ToJSON(vv)
 		if err != nil {
-			return err
+			return 0, err
 		}
-		storeValue := string(data)
-		args = append(args, storeValue)
+		args = append(args, data)
 	}
-
-	_, err := conn.Do("LPUSH", args...)
-
-	return err
-}
-
-// LPushX LPushX
-func LPushX(conn redigo.Conn, key string, value interface{}) error {
-
-	data, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	storeValue := string(data)
-
-	_, err = conn.Do("LPUSHX", key, storeValue)
-
-	return err
+	return redigo.Int(conn.Do("LPUSH", args...))
 }
 
 // RPush RPush
-func RPush(conn redigo.Conn, key string, values ...interface{}) error {
-
-	args := make([]interface{}, 0)
-
-	args = append(args, key)
-	for _, v := range values {
-		data, err := json.Marshal(v)
+func RPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+	args := []interface{}{key}
+	for _, vv := range v {
+		data, err := jsonplus.ToJSON(vv)
 		if err != nil {
-			return err
+			return 0, err
 		}
-		storeValue := string(data)
-		args = append(args, storeValue)
+		args = append(args, data)
 	}
+	return redigo.Int(conn.Do("RPUSH", args...))
+}
 
-	_, err := conn.Do("RPUSH", args...)
-
-	return err
+// LPushX LPushX
+func LPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+	args := []interface{}{key}
+	for _, vv := range v {
+		data, err := jsonplus.ToJSON(vv)
+		if err != nil {
+			return 0, err
+		}
+		args = append(args, data)
+	}
+	return redigo.Int(conn.Do("LPUSHX", args...))
 }
 
 // RPushX RPushX
-func RPushX(conn redigo.Conn, key string, value interface{}) error {
-
-	data, err := json.Marshal(value)
-	if err != nil {
-		return err
+func RPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
+	args := []interface{}{key}
+	for _, vv := range v {
+		data, err := jsonplus.ToJSON(vv)
+		if err != nil {
+			return 0, err
+		}
+		args = append(args, data)
 	}
-	storeValue := string(data)
-
-	_, err = conn.Do("RPUSHX", key, storeValue)
-
-	return err
+	return redigo.Int(conn.Do("RPUSHX", args...))
 }
 
 // LPop LPop
-func LPop(conn redigo.Conn, key string, value interface{}) (bool, error) {
-
-	storeValue, err := redigo.String(conn.Do("LPOP", key))
-
+func LPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
+	data, err := redigo.String(conn.Do("LPOP", key))
 	if err != nil && err != redigo.ErrNil {
 		return false, err
 	}
@@ -88,22 +67,15 @@ func LPop(conn redigo.Conn, key string, value interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if storeValue == "" {
-		return true, nil
-	}
-
-	err = json.Unmarshal([]byte(storeValue), value)
-	if err != nil {
+	if err := jsonplus.FromJSON(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 // RPop RPop
-func RPop(conn redigo.Conn, key string, value interface{}) (bool, error) {
-
-	storeValue, err := redigo.String(conn.Do("RPOP", key))
-
+func RPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
+	data, err := redigo.String(conn.Do("RPOP", key))
 	if err != nil && err != redigo.ErrNil {
 		return false, err
 	}
@@ -111,59 +83,17 @@ func RPop(conn redigo.Conn, key string, value interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if storeValue == "" {
-		return true, nil
-	}
-
-	err = json.Unmarshal([]byte(storeValue), value)
-	if err != nil {
+	if err := jsonplus.FromJSON(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-// LRange LRange
-// Usage:
-//     value := make([]*A, 0)
-//     LRange(conn, key, start, stop, &value)
-func LRange(conn redigo.Conn, key string, start, stop int, value interface{}) error {
-
-	storeVals, err := redigo.Strings(conn.Do("LRANGE", key, start, stop))
+// LRange LRange v []interface{}{} 的指针
+func LRange(conn redigo.Conn, key string, start, stop int, v interface{}) error {
+	datas, err := redigo.Strings(conn.Do("LRANGE", key, start, stop))
 	if err != nil && err != redigo.ErrNil {
 		return err
 	}
-
-	valStr, err := strListToStr(storeVals)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal([]byte(valStr), value)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func strListToStr(strList []string) (string, error) {
-	var buffer bytes.Buffer
-
-	for _, v := range strList {
-		if v == `""` || v == "" {
-			continue
-		}
-		buffer.WriteString(v)
-
-		buffer.WriteString(",")
-
-	}
-
-	valStr := buffer.String()
-	// 去掉最后的","
-	if len(valStr) > 0 {
-		valStr = valStr[:len(valStr)-1]
-	}
-
-	return fmt.Sprintf("[%s]", valStr), nil
+	return jsonplus.StringsToList(datas, v)
 }

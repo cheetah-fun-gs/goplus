@@ -3,6 +3,7 @@ module github.com/cheetah-fun-gs/goplus
 go 1.13
 
 require (
+	github.com/alecthomas/log4go v0.0.0-20180109082532-d146e6b86faa
 	github.com/fatih/structs v1.1.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/gomodule/redigo v2.0.0+incompatible
