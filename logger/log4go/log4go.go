@@ -83,7 +83,10 @@ func callerSource(depth int) string {
 }
 
 func (logger *Logger) toc(ctx context.Context, format string, v ...interface{}) (string, []interface{}) {
-	headFormat := fmt.Sprintf("(%s) ", callerSource(logger.c.CallerDepth))
+	var headFormat string
+	if logger.c.CallerDepth > 0 {
+		headFormat = fmt.Sprintf("(%s) ", callerSource(logger.c.CallerDepth))
+	}
 	if ctx == context.Background() || ctx == nil {
 		headFormat += "- "
 	} else {
@@ -94,7 +97,10 @@ func (logger *Logger) toc(ctx context.Context, format string, v ...interface{}) 
 }
 
 func (logger *Logger) to(format string, v ...interface{}) (string, []interface{}) {
-	headFormat := fmt.Sprintf("(%s) ", callerSource(logger.c.CallerDepth))
+	var headFormat string
+	if logger.c.CallerDepth > 0 {
+		headFormat = fmt.Sprintf("(%s) ", callerSource(logger.c.CallerDepth))
+	}
 	return headFormat + format, v
 }
 
