@@ -15,7 +15,7 @@ type mutilLogger map[string]logger.Logger
 
 var (
 	once  sync.Once
-	mutil mutilLogger
+	mutil = make(mutilLogger)
 )
 
 // Init 初始化
