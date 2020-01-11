@@ -10,7 +10,7 @@ import (
 
 // ZFind 查找 member
 func ZFind(conn redigo.Conn, key, v interface{}, isReverse bool) (ok bool, rank int, score float64, err error) {
-	member, err := jsonplus.ToJSON(v)
+	member, err := jsonplus.Dump(v)
 	if err != nil {
 		return
 	}

@@ -7,7 +7,7 @@ import (
 
 // HSet HSet
 func HSet(conn redigo.Conn, key, field string, v interface{}) error {
-	data, err := jsonplus.ToJSON(v)
+	data, err := jsonplus.Dump(v)
 	if err != nil {
 		return err
 	}
@@ -17,7 +17,7 @@ func HSet(conn redigo.Conn, key, field string, v interface{}) error {
 
 // HSetNX HSetNX
 func HSetNX(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
-	data, err := jsonplus.ToJSON(v)
+	data, err := jsonplus.Dump(v)
 	if err != nil {
 		return false, err
 	}
@@ -34,7 +34,7 @@ func HGet(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
 	if err == redigo.ErrNil { // 找不到 返回空
 		return false, nil
 	}
-	if err := jsonplus.FromJSON(data, v); err != nil {
+	if err := jsonplus.Load(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -44,7 +44,7 @@ func HGet(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
 func HMSet(conn redigo.Conn, key string, v map[string]interface{}) (int, error) {
 	args := []interface{}{key}
 	for field, vv := range v {
-		data, err := jsonplus.ToJSON(vv)
+		data, err := jsonplus.Dump(vv)
 		if err != nil {
 			return 0, err
 		}
@@ -67,7 +67,7 @@ func HMGet(conn redigo.Conn, key string, v map[string]interface{}) error {
 		field := datas[2*i]
 		val := datas[2*i+1]
 		if val != "" {
-			if err := jsonplus.FromJSON(datas[2*i+1], v[field]); err != nil {
+			if err := jsonplus.Load(datas[2*i+1], v[field]); err != nil {
 				return err
 			}
 		}

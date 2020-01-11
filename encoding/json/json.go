@@ -33,8 +33,8 @@ func keyToString(v interface{}) interface{} {
 	return v
 }
 
-// ToJSON ToJSON
-func ToJSON(v interface{}) (string, error) {
+// Dump ...
+func Dump(v interface{}) (string, error) {
 	if v == nil {
 		return "", fmt.Errorf("v is nil")
 	}
@@ -59,8 +59,8 @@ func ToJSON(v interface{}) (string, error) {
 	}
 }
 
-// FromJSON FromJSON
-func FromJSON(data string, v interface{}) error {
+// Load ...
+func Load(data string, v interface{}) error {
 	if data == "" {
 		return fmt.Errorf("data is blank")
 	}
@@ -95,7 +95,7 @@ func stringsToMapJSON(datas []string) string {
 
 // StringsToList v []interface{}{} 的指针
 func StringsToList(datas []string, v interface{}) error {
-	return FromJSON(stringsToListJSON(datas), v)
+	return Load(stringsToListJSON(datas), v)
 }
 
 // StringsToMap v map[string]interface{}{} 的指针
@@ -103,14 +103,14 @@ func StringsToMap(datas []string, v interface{}) error {
 	if len(datas)%2 != 0 {
 		return fmt.Errorf("length is not even")
 	}
-	return FromJSON(stringsToMapJSON(datas), v)
+	return Load(stringsToMapJSON(datas), v)
 }
 
 // Convert 利用json转换结构
 func Convert(src, dst interface{}) error {
-	if v, err := ToJSON(src); err != nil {
+	if v, err := Dump(src); err != nil {
 		return err
-	} else if err = FromJSON(v, dst); err != nil {
+	} else if err = Load(v, dst); err != nil {
 		return err
 	} else {
 		return nil

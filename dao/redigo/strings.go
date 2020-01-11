@@ -7,7 +7,7 @@ import (
 
 // Set Set
 func Set(conn redigo.Conn, key string, v interface{}, expire int) error {
-	data, err := jsonplus.ToJSON(v)
+	data, err := jsonplus.Dump(v)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func Get(conn redigo.Conn, key string, v interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if err := jsonplus.FromJSON(data, v); err != nil {
+	if err := jsonplus.Load(data, v); err != nil {
 		return false, err
 	}
 	return true, nil

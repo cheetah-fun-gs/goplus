@@ -9,7 +9,7 @@ import (
 func LPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 	args := []interface{}{key}
 	for _, vv := range v {
-		data, err := jsonplus.ToJSON(vv)
+		data, err := jsonplus.Dump(vv)
 		if err != nil {
 			return 0, err
 		}
@@ -22,7 +22,7 @@ func LPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 func RPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 	args := []interface{}{key}
 	for _, vv := range v {
-		data, err := jsonplus.ToJSON(vv)
+		data, err := jsonplus.Dump(vv)
 		if err != nil {
 			return 0, err
 		}
@@ -35,7 +35,7 @@ func RPush(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 func LPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 	args := []interface{}{key}
 	for _, vv := range v {
-		data, err := jsonplus.ToJSON(vv)
+		data, err := jsonplus.Dump(vv)
 		if err != nil {
 			return 0, err
 		}
@@ -48,7 +48,7 @@ func LPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 func RPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 	args := []interface{}{key}
 	for _, vv := range v {
-		data, err := jsonplus.ToJSON(vv)
+		data, err := jsonplus.Dump(vv)
 		if err != nil {
 			return 0, err
 		}
@@ -67,7 +67,7 @@ func LPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if err := jsonplus.FromJSON(data, v); err != nil {
+	if err := jsonplus.Load(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -83,7 +83,7 @@ func RPop(conn redigo.Conn, key string, v interface{}) (bool, error) {
 		return false, nil
 	}
 
-	if err := jsonplus.FromJSON(data, v); err != nil {
+	if err := jsonplus.Load(data, v); err != nil {
 		return false, err
 	}
 	return true, nil
