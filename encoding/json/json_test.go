@@ -116,7 +116,7 @@ func TestToJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ToJSON(tt.args.v)
+			got, err := Dump(tt.args.v)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ToJSON() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -149,7 +149,7 @@ func TestFromJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := FromJSON(tt.args.data, tt.args.v); (err != nil) != tt.wantErr {
+			if err := Load(tt.args.data, tt.args.v); (err != nil) != tt.wantErr {
 				t.Errorf("FromJSON() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
