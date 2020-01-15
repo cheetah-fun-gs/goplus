@@ -1,13 +1,34 @@
-// Package rand 随机方法
+// Package rand 随机库加强
+// 权重采样和概率采样说明: n = 样本集大小, k = 参数k
+//     权重采样: 样本集按权重挑选一个样本
+//     权重多重采样(不去重): 权重采样重复 k 次, 得到 k 个样本
+//     权重多重采样(去重): 权重采样重复无限次, 直到得到 k 个样本
+//     概率采样: 样本集每个样本按各自概率判断是否被选中, 得到 [0, n] 个样本
+//     概率多重采样(不去重): 概率采样重复 k 次, 得到 [0, n*k] 个样本
+//     概率多重采样(去重): 概率采样重复 k 次, 得到 [0, n*k] 个样本, 再去重
 package rand
 
 import (
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/cheetah-fun-gs/goplus/number"
 )
+
+// Rand ...
+type Rand struct {
+	src rand.Source
+	*rand.Rand
+}
+
+// New 指定种子
+func New(seed int64) *Rand {
+	src := rand.NewSource(seed)
+	return &Rand{
+		src:  src,
+		Rand: rand.New(src),
+	}
+}
 
 func randintInter(s rand.Source, m, n int) int {
 	if m == n {
@@ -16,22 +37,25 @@ func randintInter(s rand.Source, m, n int) int {
 	return rand.New(s).Intn(n+1-m) + m
 }
 
-// Randint 区间 [m,n] 中随机一个值
-func Randint(m, n int) (int, error) {
-	s := rand.NewSource(time.Now().UnixNano())
-	return RandintWithSource(s, m, n)
-}
-
-// RandintWithSource 区间 [m,n] 中随机一个值, 给定种子
-func RandintWithSource(s rand.Source, m, n int) (int, error) {
+// Randint 同wrapper
+func (r *Rand) Randint(m, n int) (int, error) {
 	if m > n {
 		return 0, fmt.Errorf("m is more than n")
 	}
-	return randintInter(s, m, n), nil
+	return randintInter(r.src, m, n), nil
 }
 
-// RandintsWithSource 区间 [m,n] 中随机 k 个值, isDistinct 是否允许重复
-func RandintsWithSource(s rand.Source, m, n, k int, isDistinct bool) ([]int, error) {
+// MustRandint 同wrapper
+func (r *Rand) MustRandint(m, n int) int {
+	v, err := r.Randint(m, n)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Randints 同wrapper
+func (r *Rand) Randints(m, n, k int, isDistinct bool) ([]int, error) {
 	if m > n {
 		return nil, fmt.Errorf("m is more than n")
 	}
@@ -51,7 +75,7 @@ func RandintsWithSource(s rand.Source, m, n, k int, isDistinct bool) ([]int, err
 		if len(result) >= k {
 			break
 		}
-		randomNum := randintInter(s, m, n)
+		randomNum := randintInter(r.src, m, n)
 		if isDistinct {
 			if _, ok := selected[randomNum]; ok {
 				continue
@@ -65,10 +89,13 @@ func RandintsWithSource(s rand.Source, m, n, k int, isDistinct bool) ([]int, err
 	return result, nil
 }
 
-// Randints 区间 [m,n] 中随机 k 个值, isDistinct 是否允许重复
-func Randints(m, n, k int, isDistinct bool) ([]int, error) {
-	s := rand.NewSource(time.Now().UnixNano())
-	return RandintsWithSource(s, m, n, k, isDistinct)
+// MustRandints 同wrapper
+func (r *Rand) MustRandints(m, n, k int, isDistinct bool) []int {
+	v, err := r.Randints(m, n, k, isDistinct)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func weightSampleInter(s rand.Source, weights []int, totalWeight int) int {
@@ -85,8 +112,8 @@ func weightSampleInter(s rand.Source, weights []int, totalWeight int) int {
 	return index
 }
 
-// WeightSampleWithSource 根据权重列表采样, 返回index 给定种子
-func WeightSampleWithSource(s rand.Source, weights []int) (int, error) {
+// WeightSample 同wrapper
+func (r *Rand) WeightSample(weights []int) (int, error) {
 	if len(weights) == 0 {
 		return 0, fmt.Errorf("weights is blank")
 	}
@@ -94,17 +121,20 @@ func WeightSampleWithSource(s rand.Source, weights []int) (int, error) {
 	if totalWeight == 0 {
 		return 0, fmt.Errorf("totalWeight is zero")
 	}
-	return weightSampleInter(s, weights, totalWeight), nil
+	return weightSampleInter(r.src, weights, totalWeight), nil
 }
 
-// WeightSample 根据权重列表采样, 返回index
-func WeightSample(weights []int) (int, error) {
-	s := rand.NewSource(time.Now().UnixNano())
-	return WeightSampleWithSource(s, weights)
+// MustWeightSample 同wrapper
+func (r *Rand) MustWeightSample(weights []int) int {
+	v, err := r.WeightSample(weights)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
-// WeightSamplesWithSource 根据权重列表批量采样, 返回index列表
-func WeightSamplesWithSource(s rand.Source, weights []int, k int, isDistinct bool) ([]int, error) {
+// WeightSamples 同wrapper
+func (r *Rand) WeightSamples(weights []int, k int, isDistinct bool) ([]int, error) {
 	if len(weights) == 0 {
 		return nil, fmt.Errorf("weights is blank")
 	}
@@ -125,7 +155,7 @@ func WeightSamplesWithSource(s rand.Source, weights []int, k int, isDistinct boo
 		if len(result) >= k {
 			break
 		}
-		sampleIndex := weightSampleInter(s, weights, totalWeight)
+		sampleIndex := weightSampleInter(r.src, weights, totalWeight)
 		if isDistinct {
 			if _, ok := selected[sampleIndex]; ok {
 				continue
@@ -139,14 +169,17 @@ func WeightSamplesWithSource(s rand.Source, weights []int, k int, isDistinct boo
 	return result, nil
 }
 
-// WeightSamples 根据权重列表批量采样, 返回index列表
-func WeightSamples(weights []int, k int, isDistinct bool) ([]int, error) {
-	s := rand.NewSource(time.Now().UnixNano())
-	return WeightSamplesWithSource(s, weights, k, isDistinct)
+// MustWeightSamples 同wrapper
+func (r *Rand) MustWeightSamples(weights []int, k int, isDistinct bool) []int {
+	v, err := r.WeightSamples(weights, k, isDistinct)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
-// ProbSamplesWithSource 根据概率列表采样,k 为重复次数 返回index列表
-func ProbSamplesWithSource(s rand.Source, probs []float64, k int, isDistinct bool) ([]int, error) {
+// ProbSamples 同wrapper
+func (r *Rand) ProbSamples(probs []float64, k int, isDistinct bool) ([]int, error) {
 	if len(probs) == 0 {
 		return nil, fmt.Errorf("probs is blank")
 	}
@@ -163,7 +196,7 @@ func ProbSamplesWithSource(s rand.Source, probs []float64, k int, isDistinct boo
 					continue
 				}
 			}
-			if rand.New(s).Float64() > prob {
+			if rand.New(r.src).Float64() > prob {
 				continue
 			}
 			result = append(result, sampleIndex)
@@ -175,8 +208,11 @@ func ProbSamplesWithSource(s rand.Source, probs []float64, k int, isDistinct boo
 	return result, nil
 }
 
-// ProbSamples 根据概率列表采样,k 为重复次数 返回index列表
-func ProbSamples(probs []float64, k int, isDistinct bool) ([]int, error) {
-	s := rand.NewSource(time.Now().UnixNano())
-	return ProbSamplesWithSource(s, probs, k, isDistinct)
+// MustProbSamples 同wrapper
+func (r *Rand) MustProbSamples(probs []float64, k int, isDistinct bool) []int {
+	v, err := r.ProbSamples(probs, k, isDistinct)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
