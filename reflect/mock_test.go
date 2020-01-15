@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestMock(t *testing.T) {
+func TestMockZero(t *testing.T) {
 	type test0 struct {
 		A0 int    `json:"a0,omitempty"`
 		B0 string `json:"b0,omitempty"`
@@ -64,8 +64,8 @@ func TestMock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Mock(tt.args.v); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Mock() = %v, want %v", got, tt.want)
+			if got := MockZero(tt.args.v); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MockZero() = %v, want %v", got, tt.want)
 			}
 		})
 	}
