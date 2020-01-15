@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestMockZero(t *testing.T) {
+func TestMockKeep(t *testing.T) {
 	type test0 struct {
 		A0 int    `json:"a0,omitempty"`
 		B0 string `json:"b0,omitempty"`
@@ -64,8 +64,8 @@ func TestMockZero(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := MockZero(tt.args.v); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MockZero() = %v, want %v", got, tt.want)
+			if got := MockKeep(tt.args.v); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MockKeep() = %v, want %v", got, tt.want)
 			}
 		})
 	}

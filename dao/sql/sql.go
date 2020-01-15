@@ -2,6 +2,8 @@ package sql
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 
 	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	reflectplus "github.com/cheetah-fun-gs/goplus/reflect"
@@ -73,4 +75,24 @@ func Select(rows *sql.Rows, v interface{}) error {
 		data = append(data, result)
 	}
 	return jsonplus.Convert(data, v)
+}
+
+// GenInsert 生成insert sql
+func GenInsert(tableName string, v interface{}) (string, []interface{}) {
+	fields, ok := v.(map[string]interface{})
+	if !ok {
+		fields = reflectplus.MockStruct(v, true, false)
+	}
+
+	coloums := []string{}
+	args := []interface{}{}
+	marks := []string{}
+	for key, val := range fields {
+		coloums = append(coloums, key)
+		args = append(args, val)
+		marks = append(marks, "?")
+	}
+
+	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", tableName,
+		strings.Join(coloums, ", "), strings.Join(marks, ", ")), args
 }
