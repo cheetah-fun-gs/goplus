@@ -33,7 +33,7 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 func Get(rows *sql.Rows, v interface{}) error {
 	fields, ok := v.(map[string]interface{})
 	if !ok {
-		fields = reflectplus.MockStruct(v, false)
+		fields = reflectplus.MockStruct(v, true, false)
 	}
 
 	columns, err := rows.Columns()
@@ -52,11 +52,11 @@ func Get(rows *sql.Rows, v interface{}) error {
 
 // Select ...
 func Select(rows *sql.Rows, v interface{}) error {
-	vv := reflectplus.MockSlice(v, false)[0]
+	vv := reflectplus.MockSlice(v, true, false)[0]
 
 	fields, ok := vv.(map[string]interface{})
 	if !ok {
-		fields = reflectplus.MockStruct(vv, false)
+		fields = reflectplus.MockStruct(vv, true, false)
 	}
 
 	columns, err := rows.Columns()
