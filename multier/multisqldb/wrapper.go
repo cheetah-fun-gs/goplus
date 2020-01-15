@@ -197,3 +197,81 @@ func StatsN(name string) sql.DBStats {
 	}
 	return sql.DBStats{}
 }
+
+// Get ...
+func Get(query string, v interface{}, args ...interface{}) error {
+	return GetContextN(context.Background(), d, query, v, args...)
+}
+
+// GetContext ...
+func GetContext(ctx context.Context, query string, v interface{}, args ...interface{}) error {
+	return GetContextN(ctx, d, query, v, args...)
+}
+
+// GetN ...
+func GetN(name, query string, v interface{}, args ...interface{}) error {
+	return GetContextN(context.Background(), name, query, v, args...)
+}
+
+// GetContextN ...
+func GetContextN(ctx context.Context, name, query string, v interface{}, args ...interface{}) error {
+	if db, ok := mutil[name]; ok {
+		rows, err := db.QueryContext(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+		return sqlplus.Get(rows, v)
+	}
+	return fmt.Errorf("name not found: %v", name)
+}
+
+// Select ...
+func Select(query string, v interface{}, args ...interface{}) error {
+	return SelectContextN(context.Background(), d, query, v, args...)
+}
+
+// SelectContext ...
+func SelectContext(ctx context.Context, query string, v interface{}, args ...interface{}) error {
+	return SelectContextN(ctx, d, query, v, args...)
+}
+
+// SelectN ...
+func SelectN(name, query string, v interface{}, args ...interface{}) error {
+	return SelectContextN(context.Background(), name, query, v, args...)
+}
+
+// SelectContextN ...
+func SelectContextN(ctx context.Context, name, query string, v interface{}, args ...interface{}) error {
+	if db, ok := mutil[name]; ok {
+		rows, err := db.QueryContext(ctx, query, args...)
+		if err != nil {
+			return err
+		}
+		return sqlplus.Select(rows, v)
+	}
+	return fmt.Errorf("name not found: %v", name)
+}
+
+// Insert ...
+func Insert(tableName string, v interface{}) (sql.Result, error) {
+	return InsertContextN(context.Background(), d, tableName, v)
+}
+
+// InsertContext ...
+func InsertContext(ctx context.Context, name, tableName string, v interface{}) (sql.Result, error) {
+	return InsertContextN(ctx, d, tableName, v)
+}
+
+// InsertN ...
+func InsertN(name, tableName string, v interface{}) (sql.Result, error) {
+	return InsertContextN(context.Background(), name, tableName, v)
+}
+
+// InsertContextN ...
+func InsertContextN(ctx context.Context, name, tableName string, v interface{}) (sql.Result, error) {
+	if db, ok := mutil[name]; ok {
+		query, args := sqlplus.GenInsert(tableName, v)
+		return db.ExecContext(ctx, query, args...)
+	}
+	return nil, fmt.Errorf("name not found: %v", name)
+}
