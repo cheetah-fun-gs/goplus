@@ -32,7 +32,7 @@ func mockAny(v reflect.Value) interface{} {
 
 // MockStruct ...
 func MockStruct(v interface{}, isRecurse bool) map[string]interface{} {
-	return mockStruct(reflect.ValueOf(v), isRecurse).(map[string]interface{})
+	return mockStruct(DeepElemValue(reflect.ValueOf(v)), isRecurse).(map[string]interface{})
 }
 
 // mockStruct ..
@@ -59,7 +59,7 @@ func mockStruct(v reflect.Value, isRecurse bool) interface{} {
 
 // MockSlice ...
 func MockSlice(v interface{}, isRecurse bool) []interface{} {
-	return mockSlice(reflect.ValueOf(v), isRecurse).([]interface{})
+	return mockSlice(DeepElemValue(reflect.ValueOf(v)), isRecurse).([]interface{})
 }
 
 // mockSlice ..
@@ -79,7 +79,7 @@ func mockSlice(v reflect.Value, isRecurse bool) interface{} {
 
 // MockArray ...
 func MockArray(v interface{}, isRecurse bool) []interface{} {
-	return mockArray(reflect.ValueOf(v), isRecurse).([]interface{})
+	return mockArray(DeepElemValue(reflect.ValueOf(v)), isRecurse).([]interface{})
 }
 
 // mockArray ..
@@ -99,7 +99,7 @@ func mockArray(v reflect.Value, isRecurse bool) interface{} {
 
 // MockMap ...
 func MockMap(v interface{}, isRecurse bool) map[string]interface{} {
-	return mockMap(reflect.ValueOf(v), isRecurse).(map[string]interface{})
+	return mockMap(DeepElemValue(reflect.ValueOf(v)), isRecurse).(map[string]interface{})
 }
 
 // mockMap ..

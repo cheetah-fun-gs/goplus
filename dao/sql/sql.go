@@ -2,7 +2,6 @@ package sql
 
 import (
 	"database/sql"
-	"fmt"
 
 	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	reflectplus "github.com/cheetah-fun-gs/goplus/reflect"
@@ -10,6 +9,7 @@ import (
 
 func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (map[string]interface{}, error) {
 	var dest []interface{}
+
 	for _, name := range columns {
 		val, ok := fields[name]
 		if !ok {
@@ -29,11 +29,11 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 	return result, nil
 }
 
-// Get ...
+// Get v map[string]interface{} or struct
 func Get(rows *sql.Rows, v interface{}) error {
-	fields, ok := reflectplus.Mock(v).(map[string]interface{})
+	fields, ok := v.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("v must be a map or a struct")
+		fields = reflectplus.MockStruct(v, false)
 	}
 
 	columns, err := rows.Columns()
@@ -52,18 +52,11 @@ func Get(rows *sql.Rows, v interface{}) error {
 
 // Select ...
 func Select(rows *sql.Rows, v interface{}) error {
-	l, ok := reflectplus.Mock(v).([]interface{})
-	if !ok {
-		return fmt.Errorf("v must be a slice")
-	}
+	vv := reflectplus.MockSlice(v, false)[0]
 
-	if len(l) == 0 {
-		return fmt.Errorf("elem is blank")
-	}
-
-	fields, ok := l[0].(map[string]interface{})
+	fields, ok := vv.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("elem must be a struct")
+		fields = reflectplus.MockStruct(vv, false)
 	}
 
 	columns, err := rows.Columns()
