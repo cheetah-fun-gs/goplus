@@ -33,7 +33,7 @@ func TestMock(t *testing.T) {
 			},
 		},
 		"B1": map[string]interface{}{
-			"mock": 0,
+			"": 0,
 		},
 		"C": []interface{}{0, 0},
 		"D": []interface{}{time.Time{}},
