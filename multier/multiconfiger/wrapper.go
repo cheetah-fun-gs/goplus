@@ -1,59 +1,22 @@
 package multiconfiger
 
-import "fmt"
+import (
+	"fmt"
 
-// Get get key from default
+	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
+)
+
+// Get 获取默认配置文件的key值
 func Get(key string) (ok bool, val interface{}, err error) {
 	return GetN(d, key)
 }
 
-// GetBool get bool key from default
-func GetBool(key string) (ok bool, val bool, err error) {
-	return GetBoolN(d, key)
+// GetD 带默认值获取默认配置文件的key值, 不存在或者返回异常则使用默认值
+func GetD(key string, def interface{}) interface{} {
+	return GetND(d, key, def)
 }
 
-// GetInt get int from default
-func GetInt(key string) (ok bool, val int, err error) {
-	return GetIntN(d, key)
-}
-
-// GetString get string from default
-func GetString(key string) (ok bool, val string, err error) {
-	return GetStringN(d, key)
-}
-
-// GetMap get map from default
-func GetMap(key string) (ok bool, val map[string]interface{}, err error) {
-	return GetMapN(d, key)
-}
-
-// GetStruct get struct from default
-func GetStruct(key string, v interface{}) (ok bool, err error) {
-	return GetStructN(d, key, v)
-}
-
-// GetBoolD get bool with def from default
-func GetBoolD(key string, def bool) bool {
-	return GetBoolDN(d, key, def)
-}
-
-// GetIntD get int with def from default
-func GetIntD(key string, def int) int {
-	return GetIntDN(d, key, def)
-
-}
-
-// GetStringD get map with def from default
-func GetStringD(key string, def string) string {
-	return GetStringDN(d, key, def)
-}
-
-// GetMapD get map with def from default
-func GetMapD(key string, def map[string]interface{}) map[string]interface{} {
-	return GetMapDN(d, key, def)
-}
-
-// GetN get with name
+// GetN 获取指定配置文件的key值
 func GetN(name, key string) (ok bool, val interface{}, err error) {
 	if c, ok := mutil[name]; ok {
 		return c.Get(key)
@@ -62,79 +25,146 @@ func GetN(name, key string) (ok bool, val interface{}, err error) {
 	return
 }
 
-// GetBoolN get bool with name
+// GetND 带默认值获取指定配置文件的key值, 不存在或者返回异常则使用默认值
+func GetND(name, key string, def interface{}) interface{} {
+	ok, v, err := GetN(name, key)
+	if !ok || err != nil {
+		return def
+	}
+	return v
+}
+
+// GetBool ...
+func GetBool(key string) (ok bool, val bool, err error) {
+	return GetBoolN(d, key)
+}
+
+// GetBoolD ...
+func GetBoolD(key string, def bool) bool {
+	return GetBoolND(d, key, def)
+}
+
+// GetBoolN ...
 func GetBoolN(name, key string) (ok bool, val bool, err error) {
-	if c, ok := mutil[name]; ok {
-		return c.GetBool(key)
+	ok, v, err := GetN(name, key)
+	if !ok || err != nil {
+		return ok, false, err
 	}
-	err = fmt.Errorf("name not found: %v", name)
-	return
+	vv, ok := v.(bool)
+	if !ok {
+		return true, false, fmt.Errorf("val is not bool")
+	}
+	return true, vv, nil
 }
 
-// GetIntN get int with name
+// GetBoolND ...
+func GetBoolND(name, key string, def bool) bool {
+	ok, v, err := GetBoolN(name, key)
+	if !ok || err != nil {
+		return def
+	}
+	return v
+}
+
+// GetInt ...
+func GetInt(key string) (ok bool, val int, err error) {
+	return GetIntN(d, key)
+}
+
+// GetIntD ...
+func GetIntD(key string, def int) int {
+	return GetIntND(d, key, def)
+}
+
+// GetIntN ...
 func GetIntN(name, key string) (ok bool, val int, err error) {
-	if c, ok := mutil[name]; ok {
-		return c.GetInt(key)
+	ok, v, err := GetN(name, key)
+	if !ok || err != nil {
+		return ok, 0, err
 	}
-	err = fmt.Errorf("name not found: %v", name)
-	return
+	vv, ok := v.(int)
+	if !ok {
+		return true, 0, fmt.Errorf("val is not int")
+	}
+	return true, vv, nil
 }
 
-// GetStringN get string with name
+// GetIntND ...
+func GetIntND(name, key string, def int) int {
+	ok, v, err := GetIntN(name, key)
+	if !ok || err != nil {
+		return def
+	}
+	return v
+}
+
+// GetString ...
+func GetString(key string) (ok bool, val string, err error) {
+	return GetStringN(d, key)
+}
+
+// GetStringD ...
+func GetStringD(key string, def string) string {
+	return GetStringND(d, key, def)
+}
+
+// GetStringN ...
 func GetStringN(name, key string) (ok bool, val string, err error) {
-	if c, ok := mutil[name]; ok {
-		return c.GetString(key)
+	ok, v, err := GetN(name, key)
+	if !ok || err != nil {
+		return ok, "", err
 	}
-	err = fmt.Errorf("name not found: %v", name)
-	return
+	vv, ok := v.(string)
+	if !ok {
+		return true, "", fmt.Errorf("val is not string")
+	}
+	return true, vv, nil
 }
 
-// GetMapN get map with name
-func GetMapN(name, key string) (ok bool, val map[string]interface{}, err error) {
-	if c, ok := mutil[name]; ok {
-		return c.GetMap(key)
+// GetStringND ...
+func GetStringND(name, key string, def string) string {
+	ok, v, err := GetStringN(name, key)
+	if !ok || err != nil {
+		return def
 	}
-	err = fmt.Errorf("name not found: %v", name)
-	return
+	return v
 }
 
-// GetStructN get struct with name
-func GetStructN(name, key string, v interface{}) (ok bool, err error) {
-	if c, ok := mutil[name]; ok {
-		return c.GetStruct(key, v)
-	}
-	err = fmt.Errorf("name not found: %v", name)
-	return
+// GetAny ...
+func GetAny(key string, v interface{}) (ok bool, err error) {
+	return GetAnyN(d, key, v)
 }
 
-// GetBoolDN get bool with name
-func GetBoolDN(name, key string, def bool) bool {
-	if c, ok := mutil[name]; ok {
-		return c.GetBoolD(key, def)
-	}
-	return def
+// GetAnyD ...
+func GetAnyD(key string, def interface{}) {
+	GetAnyND(d, key, def)
 }
 
-// GetIntDN get int with name
-func GetIntDN(name, key string, def int) int {
-	if c, ok := mutil[name]; ok {
-		return c.GetIntD(key, def)
+// GetAnyN ...
+func GetAnyN(name, key string, v interface{}) (ok bool, err error) {
+	ok, data, err := GetN(name, key)
+	if !ok || err != nil {
+		return ok, err
 	}
-	return def
+
+	if err = jsonplus.Convert(data, v); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
-// GetStringDN get string with name
-func GetStringDN(name, key string, def string) string {
-	if c, ok := mutil[name]; ok {
-		return c.GetStringD(key, def)
+// GetAnyND ...
+func GetAnyND(name, key string, def interface{}) {
+	data, err := jsonplus.Dump(def)
+	if err != nil {
+		return
 	}
-	return def
-}
 
-// GetMapDN get map with name
-func GetMapDN(name, key string, def map[string]interface{}) map[string]interface{} {
-	if c, ok := mutil[name]; ok {
-		return c.GetMapD(key, def)
+	ok, err := GetAnyN(name, key, def)
+	if ok && err == nil {
+		return
 	}
-	return def
+
+	jsonplus.Load(data, def)
 }
