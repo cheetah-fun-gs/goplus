@@ -199,22 +199,22 @@ func StatsN(name string) sql.DBStats {
 }
 
 // Get ...
-func Get(query string, v interface{}, args ...interface{}) error {
-	return GetContextN(context.Background(), d, query, v, args...)
+func Get(v interface{}, query string, args ...interface{}) error {
+	return GetContextN(context.Background(), d, v, query, args...)
 }
 
 // GetContext ...
-func GetContext(ctx context.Context, query string, v interface{}, args ...interface{}) error {
-	return GetContextN(ctx, d, query, v, args...)
+func GetContext(ctx context.Context, v interface{}, query string, args ...interface{}) error {
+	return GetContextN(ctx, d, v, query, args...)
 }
 
 // GetN ...
-func GetN(name, query string, v interface{}, args ...interface{}) error {
-	return GetContextN(context.Background(), name, query, v, args...)
+func GetN(name string, v interface{}, query string, args ...interface{}) error {
+	return GetContextN(context.Background(), name, v, query, args...)
 }
 
 // GetContextN ...
-func GetContextN(ctx context.Context, name, query string, v interface{}, args ...interface{}) error {
+func GetContextN(ctx context.Context, name string, v interface{}, query string, args ...interface{}) error {
 	if db, ok := mutil[name]; ok {
 		rows, err := db.QueryContext(ctx, query, args...)
 		if err != nil {
@@ -226,22 +226,22 @@ func GetContextN(ctx context.Context, name, query string, v interface{}, args ..
 }
 
 // Select ...
-func Select(query string, v interface{}, args ...interface{}) error {
-	return SelectContextN(context.Background(), d, query, v, args...)
+func Select(v interface{}, query string, args ...interface{}) error {
+	return SelectContextN(context.Background(), d, v, query, args...)
 }
 
 // SelectContext ...
-func SelectContext(ctx context.Context, query string, v interface{}, args ...interface{}) error {
-	return SelectContextN(ctx, d, query, v, args...)
+func SelectContext(ctx context.Context, v interface{}, query string, args ...interface{}) error {
+	return SelectContextN(ctx, d, v, query, args...)
 }
 
 // SelectN ...
-func SelectN(name, query string, v interface{}, args ...interface{}) error {
-	return SelectContextN(context.Background(), name, query, v, args...)
+func SelectN(name string, v interface{}, query string, args ...interface{}) error {
+	return SelectContextN(context.Background(), name, v, query, args...)
 }
 
 // SelectContextN ...
-func SelectContextN(ctx context.Context, name, query string, v interface{}, args ...interface{}) error {
+func SelectContextN(ctx context.Context, name string, v interface{}, query string, args ...interface{}) error {
 	if db, ok := mutil[name]; ok {
 		rows, err := db.QueryContext(ctx, query, args...)
 		if err != nil {
