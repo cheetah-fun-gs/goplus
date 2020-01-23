@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/cheetah-fun-gs/goplus/encoding/basen"
 	"github.com/google/uuid"
+	"github.com/nicksnyder/basen"
 )
 
 // md5 to xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -53,8 +53,7 @@ func (u UUID) Base64() string {
 
 // Base62 to Base62
 func (u UUID) Base62() string {
-	e := basen.NewBase62()
-	return e.Encode(u)
+	return basen.Base62Encoding.EncodeToString(u)
 }
 
 // MD5 to MD5
