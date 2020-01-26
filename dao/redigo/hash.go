@@ -1,6 +1,8 @@
 package redigo
 
 import (
+	"fmt"
+
 	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -40,11 +42,16 @@ func HGet(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
 	return true, nil
 }
 
-// HMSet HMSet
-func HMSet(conn redigo.Conn, key string, v map[string]interface{}) (int, error) {
+// HMSet HMSet v map[string]interface{}{} 的指针
+func HMSet(conn redigo.Conn, key string, v interface{}) (int, error) {
+	vv, ok := v.(map[string]interface{})
+	if !ok {
+		return 0, fmt.Errorf("v must be map[string]interface{}")
+	}
+
 	args := []interface{}{key}
-	for field, vv := range v {
-		data, err := jsonplus.Dump(vv)
+	for field, val := range vv {
+		data, err := jsonplus.Dump(val)
 		if err != nil {
 			return 0, err
 		}
@@ -53,21 +60,26 @@ func HMSet(conn redigo.Conn, key string, v map[string]interface{}) (int, error) 
 	return redigo.Int(conn.Do("HSET", args...))
 }
 
-// HMGet HMGet
-func HMGet(conn redigo.Conn, key string, v map[string]interface{}) error {
+// HMGet HMGet v map[string]interface{}{} 的指针
+func HMGet(conn redigo.Conn, key string, v interface{}) error {
+	vv, ok := v.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("v must be map[string]interface{}")
+	}
+
 	args := []interface{}{key}
-	for field := range v {
+	for field := range vv {
 		args = append(args, field)
 	}
 	datas, err := redigo.Strings(conn.Do("HMGET", args...))
 	if err != nil {
 		return err
 	}
-	for i := 0; i < len(v); i++ {
+	for i := 0; i < len(vv); i++ {
 		field := datas[2*i]
 		val := datas[2*i+1]
 		if val != "" {
-			if err := jsonplus.Load(datas[2*i+1], v[field]); err != nil {
+			if err := jsonplus.Load(datas[2*i+1], vv[field]); err != nil {
 				return err
 			}
 		}
