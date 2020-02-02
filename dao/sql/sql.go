@@ -9,6 +9,30 @@ import (
 	reflectplus "github.com/cheetah-fun-gs/goplus/reflect"
 )
 
+// RowsAffected ...
+func RowsAffected(result sql.Result, err error) (int, error) {
+	if err != nil {
+		return 0, err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return int(rowsAffected), nil
+}
+
+// LastInsertId ...
+func LastInsertId(result sql.Result, err error) (int, error) {
+	if err != nil {
+		return 0, err
+	}
+	lastInsertID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return int(lastInsertID), nil
+}
+
 func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (map[string]interface{}, error) {
 	var dest []interface{}
 
