@@ -27,12 +27,12 @@ type Logger struct {
 }
 
 // New ...
-func New(name string, v ...*Config) *Logger {
+func New(name string, configs ...Config) *Logger {
 	var c *Config
-	if len(v) == 0 {
+	if len(configs) == 0 {
 		c = &Config{}
 	} else {
-		c = v[0]
+		c = &configs[0]
 	}
 	if c.CallerDepth >= 0 {
 		c.CallerDepth += 3

@@ -42,13 +42,13 @@ type Locker struct {
 }
 
 // New 获取一个守护锁
-func New(pool *redigo.Pool, name string, v ...interface{}) (*Locker, error) {
-	interval := defaultInterval
-	if len(v) > 0 {
-		interval = v[0].(int)
-		if interval < 1 {
-			interval = 1
-		}
+func New(pool *redigo.Pool, name string, intervals ...int) (*Locker, error) {
+	var interval int
+	if len(intervals) > 0 {
+		interval = intervals[0]
+	}
+	if interval <= 0 {
+		interval = defaultInterval
 	}
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
