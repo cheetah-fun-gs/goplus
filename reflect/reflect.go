@@ -1,6 +1,7 @@
 package reflect
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -31,4 +32,18 @@ func structFieldName(field reflect.StructField, tagName string) string {
 	} else {
 		return splits[0]
 	}
+}
+
+// MapKeys ...
+func MapKeys(i interface{}) ([]interface{}, error) {
+	v := DeepElemValue(reflect.ValueOf(i))
+	if v.Kind() != reflect.Map {
+		return nil, fmt.Errorf("must be map")
+	}
+	result := []interface{}{}
+	iter := v.MapRange()
+	for iter.Next() {
+		result = append(result, iter.Key().Interface())
+	}
+	return result, nil
 }
