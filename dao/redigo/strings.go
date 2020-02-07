@@ -16,7 +16,7 @@ func Set(conn redigo.Conn, key string, v interface{}, expire int) error {
 	return err
 }
 
-// Get Get Deprecated: Use ToStruct instead.
+// Get Get Deprecated: Use Result().StringToJSON instead.
 func Get(conn redigo.Conn, key string, dest interface{}) (bool, error) {
-	return Result(conn.Do("GET", key)).ToStruct(dest)
+	return Result(conn.Do("GET", key)).StringToJSON(dest)
 }

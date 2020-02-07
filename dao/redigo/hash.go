@@ -18,9 +18,9 @@ func HSetNX(conn redigo.Conn, key, field string, v interface{}) (bool, error) {
 	return ok > 0, err
 }
 
-// HGet HGet Deprecated: Use ToStruct instead.
+// HGet HGet Deprecated: Use Result().StringToJSON instead.
 func HGet(conn redigo.Conn, key, field string, dest interface{}) (bool, error) {
-	return Result(conn.Do("HGET", key, field)).ToStruct(dest)
+	return Result(conn.Do("HGET", key, field)).StringToJSON(dest)
 }
 
 // HMSet HMSet v map[string]interface{}{} 的指针
@@ -48,15 +48,15 @@ func HMGet(conn redigo.Conn, key string, dest interface{}) error {
 	for field := range v {
 		args = append(args, field)
 	}
-	return Result(conn.Do("HMGET", args...)).ToMap(dest)
+	return Result(conn.Do("HMGET", args...)).StringsToMap(dest)
 }
 
-// HGetAll HGetAll  v map[string]***{} 的指针 Deprecated: Use ToMap instead.
+// HGetAll HGetAll  v map[string]***{} 的指针 Deprecated: Use Result().StringsToMap instead.
 func HGetAll(conn redigo.Conn, key string, dest interface{}) error {
-	return Result(conn.Do("HGETALL", key)).ToMap(dest)
+	return Result(conn.Do("HGETALL", key)).StringsToMap(dest)
 }
 
-// HVals HVals v []***{} 的指针 Deprecated: Use ToList instead.
+// HVals HVals v []***{} 的指针 Deprecated: Use Result().StringsToList instead.
 func HVals(conn redigo.Conn, key string, dest interface{}) error {
-	return Result(conn.Do("HVALS", key)).ToList(dest)
+	return Result(conn.Do("HVALS", key)).StringsToList(dest)
 }

@@ -52,8 +52,8 @@ type Res struct {
 	err   error
 }
 
-// ToStruct ...
-func (res *Res) ToStruct(dest interface{}) (bool, error) {
+// StringToJSON ...
+func (res *Res) StringToJSON(dest interface{}) (bool, error) {
 	data, err := redigo.String(res.reply, res.err)
 	if err != nil && err != redigo.ErrNil {
 		return false, err
@@ -67,8 +67,8 @@ func (res *Res) ToStruct(dest interface{}) (bool, error) {
 	return true, nil
 }
 
-// ToList ...
-func (res *Res) ToList(dest interface{}) error {
+// StringsToList ...
+func (res *Res) StringsToList(dest interface{}) error {
 	datas, err := redigo.Strings(res.reply, res.err)
 	if err != nil && err != redigo.ErrNil {
 		return err
@@ -76,8 +76,8 @@ func (res *Res) ToList(dest interface{}) error {
 	return jsonplus.StringsToList(datas, dest)
 }
 
-// ToMap ...
-func (res *Res) ToMap(dest interface{}) error {
+// StringsToMap ...
+func (res *Res) StringsToMap(dest interface{}) error {
 	datas, err := redigo.Strings(res.reply, res.err)
 	if err != nil && err != redigo.ErrNil {
 		return err
