@@ -16,7 +16,7 @@ func Set(conn redigo.Conn, key string, v interface{}, expire int) error {
 	return err
 }
 
-// Get Get
+// Get Get Deprecated: Use ToStruct instead.
 func Get(conn redigo.Conn, key string, dest interface{}) (bool, error) {
 	return Result(conn.Do("GET", key)).ToStruct(dest)
 }

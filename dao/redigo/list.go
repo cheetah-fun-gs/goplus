@@ -32,17 +32,17 @@ func RPushX(conn redigo.Conn, key string, v ...interface{}) (int, error) {
 	return redigo.Int(Do(conn, "RPUSHX", args...))
 }
 
-// LPop LPop
+// LPop LPop Deprecated: Use ToStruct instead.
 func LPop(conn redigo.Conn, key string, dest interface{}) (bool, error) {
 	return Result(conn.Do("LPOP", key)).ToStruct(dest)
 }
 
-// RPop RPop
+// RPop RPop Deprecated: Use ToStruct instead.
 func RPop(conn redigo.Conn, key string, dest interface{}) (bool, error) {
 	return Result(conn.Do("RPOP", key)).ToStruct(dest)
 }
 
-// LRange LRange v []interface{}{} 的指针
+// LRange LRange v []interface{}{} 的指针 Deprecated: Use ToList instead.
 func LRange(conn redigo.Conn, key string, start, stop int, dest interface{}) error {
 	return Result(conn.Do("LRANGE", key, start, stop)).ToList(dest)
 }
