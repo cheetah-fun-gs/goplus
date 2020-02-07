@@ -1,7 +1,6 @@
 package reflect
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -22,6 +21,18 @@ func DeepElemValue(v reflect.Value) reflect.Value {
 	}
 }
 
+// DeepElemType 追踪指针获取最终的 elem type
+func DeepElemType(tye reflect.Type) reflect.Type {
+	for {
+		switch tye.Kind() {
+		case reflect.Ptr, reflect.Uintptr, reflect.UnsafePointer:
+			tye = tye.Elem()
+		default:
+			return tye
+		}
+	}
+}
+
 func structFieldName(field reflect.StructField, tagName string) string {
 	if field.Tag == "" {
 		return field.Name
@@ -32,18 +43,4 @@ func structFieldName(field reflect.StructField, tagName string) string {
 	} else {
 		return splits[0]
 	}
-}
-
-// MapKeys ...
-func MapKeys(i interface{}) ([]interface{}, error) {
-	v := DeepElemValue(reflect.ValueOf(i))
-	if v.Kind() != reflect.Map {
-		return nil, fmt.Errorf("must be map")
-	}
-	result := []interface{}{}
-	iter := v.MapRange()
-	for iter.Next() {
-		result = append(result, iter.Key().Interface())
-	}
-	return result, nil
 }

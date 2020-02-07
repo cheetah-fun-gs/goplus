@@ -2,7 +2,10 @@
 package redigo
 
 import (
+	"reflect"
+
 	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
+	reflectplus "github.com/cheetah-fun-gs/goplus/reflect"
 	redigo "github.com/gomodule/redigo/redis"
 )
 
@@ -63,6 +66,59 @@ func (res *Res) StringToJSON(dest interface{}) (bool, error) {
 	}
 	if err = jsonplus.Load(data, dest); err != nil {
 		return false, err
+	}
+	return true, nil
+}
+
+// Value ...
+func (res *Res) Value(dest interface{}) (bool, error) {
+	var err error
+	var v reflect.Value
+	var jsonData string
+
+	typ := reflectplus.DeepElemType(reflect.TypeOf(dest))
+	switch typ.Kind() {
+	case reflect.String:
+		var data string
+		data, err = redigo.String(res.reply, res.err)
+		v = reflect.ValueOf(data)
+	case reflect.Uint8:
+		var data []byte
+		data, err = redigo.Bytes(res.reply, res.err)
+		v = reflect.ValueOf(data)
+	case reflect.Int:
+		var data int
+		data, err = redigo.Int(res.reply, res.err)
+		v = reflect.ValueOf(data)
+	case reflect.Int64:
+		var data int64
+		data, err = redigo.Int64(res.reply, res.err)
+		v = reflect.ValueOf(data)
+	case reflect.Float64:
+		var data float64
+		data, err = redigo.Float64(res.reply, res.err)
+		v = reflect.ValueOf(data)
+	case reflect.Bool:
+		var data bool
+		data, err = redigo.Bool(res.reply, res.err)
+		v = reflect.ValueOf(data)
+	default:
+		jsonData, err = redigo.String(res.reply, res.err)
+	}
+
+	if err != nil && err != redigo.ErrNil {
+		return false, err
+	}
+	if err == redigo.ErrNil {
+		return false, nil
+	}
+
+	if jsonData != "" {
+		if err = jsonplus.Load(jsonData, dest); err != nil {
+			return false, err
+		}
+	} else {
+		reflect.ValueOf(dest).Elem().Set(v)
 	}
 	return true, nil
 }

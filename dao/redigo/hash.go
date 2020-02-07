@@ -2,7 +2,10 @@ package redigo
 
 import (
 	"fmt"
+	"reflect"
 
+	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
+	reflectplus "github.com/cheetah-fun-gs/goplus/reflect"
 	redigo "github.com/gomodule/redigo/redis"
 )
 
@@ -23,29 +26,47 @@ func HGet(conn redigo.Conn, key, field string, dest interface{}) (bool, error) {
 	return Result(conn.Do("HGET", key, field)).StringToJSON(dest)
 }
 
-// HMSet HMSet v map[string]interface{}{} 的指针
+// HMSet HMSet v map[string]***{} or struct
 func HMSet(conn redigo.Conn, key string, v interface{}) (int, error) {
-	vv, ok := v.(map[string]interface{})
-	if !ok {
-		return 0, fmt.Errorf("v must be map[string]interface{}")
+	data := map[string]interface{}{}
+
+	typ := reflectplus.DeepElemType(reflect.TypeOf(v))
+	switch typ.Kind() {
+	case reflect.Map:
+		if err := jsonplus.Convert(v, &data); err != nil {
+			return 0, err
+		}
+	case reflect.Struct:
+		data = reflectplus.MockStruct(v, true, false)
+	default:
+		return 0, fmt.Errorf("v must be Map or Struct")
 	}
 
 	args := []interface{}{key}
-	for field, val := range vv {
+	for field, val := range data {
 		args = append(args, field, val)
 	}
 	return redigo.Int(Do(conn, "HSET", args...))
 }
 
-// HMGet HMGet v map[string]interface{}{} 的指针
+// HMGet HMGet dest map[string]***{} or struct 的指针
 func HMGet(conn redigo.Conn, key string, dest interface{}) error {
-	v, ok := dest.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("dest must be map[string]interface{}")
+	data := map[string]interface{}{}
+
+	typ := reflectplus.DeepElemType(reflect.TypeOf(dest))
+	switch typ.Kind() {
+	case reflect.Map:
+		if err := jsonplus.Convert(dest, &data); err != nil {
+			return err
+		}
+	case reflect.Struct:
+		data = reflectplus.MockStruct(dest, true, false)
+	default:
+		return fmt.Errorf("dest must be Map or Struct")
 	}
 
 	args := []interface{}{key}
-	for field := range v {
+	for field := range data {
 		args = append(args, field)
 	}
 	return Result(conn.Do("HMGET", args...)).StringsToMap(dest)
