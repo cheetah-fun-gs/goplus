@@ -33,13 +33,11 @@ type Cacher struct {
 // v[1]: safety, 回源安全时间, 在缓存时间不足safety时, 开始回源, 默认30秒
 func New(name string, pool *redigo.Pool,
 	getFunc func(dest interface{}, args ...interface{}) error,
-	setFunc func(data interface{}, args ...interface{}) error,
 	v ...int) *Cacher {
 	cacher := &Cacher{
 		name:     name,
 		pool:     pool,
 		getFunc:  getFunc,
-		setFunc:  setFunc,
 		expire:   600,
 		safety:   30,
 		mLogName: "default",
@@ -59,6 +57,11 @@ func New(name string, pool *redigo.Pool,
 // SetMLogName 设置日志器名称
 func (cacher *Cacher) SetMLogName(name string) {
 	cacher.mLogName = name
+}
+
+// RegisterSetFunc 注册设置函数
+func (cacher *Cacher) RegisterSetFunc(arg func(data interface{}, args ...interface{}) error) {
+	cacher.setFunc = arg
 }
 
 // DisableGoroutine 禁用协程 faas无法使用
@@ -103,6 +106,10 @@ func (cacher *Cacher) backToSource(dest interface{}, args ...interface{}) error 
 
 // Set ...
 func (cacher *Cacher) Set(data interface{}, args ...interface{}) error {
+	if cacher.setFunc == nil {
+		return fmt.Errorf("setFunc is not Register")
+	}
+
 	lock, err := cacher.getLocker(args...)
 	if err != nil {
 		return err
