@@ -56,6 +56,16 @@ func New(name string, pool *redigo.Pool,
 	return cacher
 }
 
+// SetMLogName 设置日志器名称
+func (cacher *Cacher) SetMLogName(name string) {
+	cacher.mLogName = name
+}
+
+// DisableGoroutine 禁用协程 faas无法使用
+func (cacher *Cacher) DisableGoroutine() {
+	cacher.isDisableGoroutine = true
+}
+
 func (cacher *Cacher) getKey(args ...interface{}) string {
 	splits := []string{cacher.name, "cacher"}
 	for _, arg := range splits {
