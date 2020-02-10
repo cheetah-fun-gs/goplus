@@ -86,7 +86,7 @@ func (cacher *Cacher) DisableGoroutine() {
 
 func (cacher *Cacher) getKey(args ...interface{}) string {
 	splits := []string{cacher.name, "cacher"}
-	for _, arg := range splits {
+	for _, arg := range args {
 		splits = append(splits, fmt.Sprintf("%v", arg))
 	}
 	return strings.Join(splits, ":")
