@@ -25,12 +25,12 @@ type Source interface {
 }
 
 type cacheValue struct {
-	Vaild bool   `json:"vaild,omitempty"`
+	IsNil bool   `json:"is_nil,omitempty"`
 	Data  string `json:"data,omitempty"`
 }
 
 func (val *cacheValue) parse(dest interface{}) (bool, error) {
-	if !val.Vaild {
+	if val.IsNil {
 		return false, nil
 	}
 	if err := jsonplus.Load(val.Data, dest); err != nil {
@@ -139,9 +139,16 @@ func (cacher *Cacher) Set(data interface{}, args ...interface{}) error {
 }
 
 func (cacher *Cacher) cacheSet(vaild bool, data interface{}, args ...interface{}) error {
-	cacheData, err := jsonplus.Dump(data)
-	if err != nil {
-		return err
+	val := cacheValue{
+		IsNil: !vaild,
+	}
+
+	if data != nil {
+		cacheData, err := jsonplus.Dump(data)
+		if err != nil {
+			return err
+		}
+		val.Data = cacheData
 	}
 
 	conn := cacher.pool.Get()
@@ -149,11 +156,7 @@ func (cacher *Cacher) cacheSet(vaild bool, data interface{}, args ...interface{}
 
 	key := cacher.getKey(args...)
 
-	val := cacheValue{
-		Vaild: vaild,
-		Data:  cacheData,
-	}
-	_, err = redigoplus.Do(conn, "SET", key, val, "EX", cacher.expire)
+	_, err := redigoplus.Do(conn, "SET", key, val, "EX", cacher.expire)
 	return err
 }
 
