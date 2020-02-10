@@ -8,6 +8,7 @@ import (
 	"time"
 
 	redigoplus "github.com/cheetah-fun-gs/goplus/dao/redigo"
+	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	"github.com/cheetah-fun-gs/goplus/locker"
 	mlogger "github.com/cheetah-fun-gs/goplus/multier/multilogger"
 	redigo "github.com/gomodule/redigo/redis"
@@ -16,28 +17,37 @@ import (
 // ErrorLocked 错误: 已锁
 var ErrorLocked = fmt.Errorf("locked")
 
+// Source 源方法
+type Source interface {
+	Get(dest interface{}, args ...interface{}) (bool, error) // 获取 必须, PS: bool 表示没有结果
+	Set(data interface{}, args ...interface{}) error         // 设置
+	Del(args ...interface{}) error                           // 删除
+}
+
+type cacheValue struct {
+	Vaild bool   `json:"vaild,omitempty"`
+	Data  string `json:"data,omitempty"`
+}
+
 // Cacher ...
 type Cacher struct {
 	name               string
 	pool               *redigo.Pool
-	getFunc            func(dest interface{}, args ...interface{}) error // 源获取 要处理空值, 不能抛异常
-	setFunc            func(data interface{}, args ...interface{}) error // 源更新
-	expire             int                                               // 缓存超时时间
-	safety             int                                               // 回源安全时间 在缓存时间不足safety时, 开始回源
-	isDisableGoroutine bool                                              // 是否禁用goroutine  faas中需要禁用
+	source             Source
+	expire             int  // 缓存超时时间
+	safety             int  // 回源安全时间 在缓存时间不足safety时, 开始回源
+	isDisableGoroutine bool // 是否禁用goroutine  faas中需要禁用
 	mLogName           string
 }
 
 // New 一个新的缓存器
 // v[0]: expire, 缓存超时时间, 默认10分钟
 // v[1]: safety, 回源安全时间, 在缓存时间不足safety时, 开始回源, 默认30秒
-func New(name string, pool *redigo.Pool,
-	getFunc func(dest interface{}, args ...interface{}) error,
-	v ...int) *Cacher {
+func New(name string, pool *redigo.Pool, source Source, v ...int) *Cacher {
 	cacher := &Cacher{
 		name:     name,
 		pool:     pool,
-		getFunc:  getFunc,
+		source:   source,
 		expire:   600,
 		safety:   30,
 		mLogName: "default",
@@ -59,12 +69,7 @@ func (cacher *Cacher) SetMLogName(name string) {
 	cacher.mLogName = name
 }
 
-// RegisterSetFunc 注册设置函数
-func (cacher *Cacher) RegisterSetFunc(arg func(data interface{}, args ...interface{}) error) {
-	cacher.setFunc = arg
-}
-
-// DisableGoroutine 禁用协程 faas无法使用
+// DisableGoroutine 禁用协程 比如faas无法使用协程
 func (cacher *Cacher) DisableGoroutine() {
 	cacher.isDisableGoroutine = true
 }
@@ -97,44 +102,67 @@ func (cacher *Cacher) backToSource(dest interface{}, args ...interface{}) error 
 	}
 	defer lock.Close()
 
-	if err = cacher.getFunc(dest, args...); err != nil {
+	ok, err := cacher.source.Get(dest, args...)
+	if err != nil {
 		return err
 	}
 
-	return cacher.cacheSet(dest, args...)
+	return cacher.cacheSet(ok, dest, args...)
 }
 
 // Set ...
 func (cacher *Cacher) Set(data interface{}, args ...interface{}) error {
-	if cacher.setFunc == nil {
-		return fmt.Errorf("setFunc is not Register")
-	}
-
 	lock, err := cacher.getLocker(args...)
 	if err != nil {
 		return err
 	}
 	defer lock.Close()
 
-	if err := cacher.setFunc(data, args...); err != nil {
+	if err := cacher.source.Set(data, args...); err != nil {
 		return err
 	}
 
-	return cacher.cacheSet(data, args...)
+	return cacher.cacheSet(true, data, args...)
 }
 
-func (cacher *Cacher) cacheSet(data interface{}, args ...interface{}) error {
+func (cacher *Cacher) cacheSet(vaild bool, data interface{}, args ...interface{}) error {
+	cacheData, err := jsonplus.Dump(data)
+	if err != nil {
+		return err
+	}
+
 	conn := cacher.pool.Get()
 	defer conn.Close()
 
 	key := cacher.getKey(args...)
-	_, err := redigoplus.Do(conn, "SET", key, data, "EX", cacher.expire)
+
+	val := cacheValue{
+		Vaild: vaild,
+		Data:  cacheData,
+	}
+	_, err = redigoplus.Do(conn, "SET", key, val, "EX", cacher.expire)
 	return err
+}
+
+// Del ...
+func (cacher *Cacher) Del(args ...interface{}) error {
+	lock, err := cacher.getLocker(args...)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+
+	if err := cacher.source.Del(args...); err != nil {
+		return err
+	}
+
+	return cacher.cacheSet(false, nil, args...)
 }
 
 // Get ...
 func (cacher *Cacher) Get(dest interface{}, args ...interface{}) error {
-	ok, deadline, err := cacher.cacheGet(dest, args...)
+	val := &cacheValue{}
+	ok, deadline, err := cacher.cacheGet(val, args...)
 	if err != nil {
 		return err
 	}
@@ -143,33 +171,34 @@ func (cacher *Cacher) Get(dest interface{}, args ...interface{}) error {
 
 	// 从缓存中取到 并且无需提前回源
 	if ok && deadline-now.Unix() > int64(cacher.safety) {
-		return nil
+		return jsonplus.Load(val.Data, dest)
 	}
 
 	// 从缓存中取到 提前回源
 	if ok && deadline-now.Unix() <= int64(cacher.safety) {
-		destCopy := reflect.New(reflect.TypeOf(dest).Elem()).Interface()
 		if cacher.isDisableGoroutine { // 同步回源
-			if err = cacher.backToSource(destCopy, args...); err != nil {
+			if err = cacher.backToSource(dest, args...); err != nil {
 				mlogger.WarnN(cacher.mLogName, "safety sync cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
-			} else {
-				reflect.ValueOf(dest).Elem().Set(reflect.ValueOf(destCopy).Elem())
+				return jsonplus.Load(val.Data, dest) // 回源失败使用缓存
 			}
-		} else { // 异步回源
-			go func() {
-				if err = cacher.backToSource(destCopy, args...); err != nil {
-					mlogger.WarnN(cacher.mLogName, "safety async cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
-				}
-			}()
+			return nil // 回源成功 使用源
 		}
-		return nil
+
+		// 异步回源
+		go func() {
+			destCopy := reflect.New(reflect.TypeOf(dest).Elem()).Interface() // 拷贝一个指针
+			if err = cacher.backToSource(destCopy, args...); err != nil {
+				mlogger.WarnN(cacher.mLogName, "safety async cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
+			}
+		}()
+		return jsonplus.Load(val.Data, dest) // 使用缓存
 	}
 
 	// 缓存中取不到 强制回源
 	return cacher.backToSource(dest, args...)
 }
 
-func (cacher *Cacher) cacheGet(dest interface{}, args ...interface{}) (ok bool, deadline int64, err error) {
+func (cacher *Cacher) cacheGet(val *cacheValue, args ...interface{}) (ok bool, deadline int64, err error) {
 	conn := cacher.pool.Get()
 	defer conn.Close()
 
@@ -184,7 +213,7 @@ func (cacher *Cacher) cacheGet(dest interface{}, args ...interface{}) (ok bool, 
 		return
 	}
 
-	ok, err = redigoplus.Result(conn.Receive()).Value(dest)
+	ok, err = redigoplus.Result(conn.Receive()).Value(val)
 	if err != nil {
 		return false, 0, err
 	}
