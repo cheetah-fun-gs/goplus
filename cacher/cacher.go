@@ -19,7 +19,7 @@ var ErrorLocked = fmt.Errorf("locked")
 
 // Source 源方法
 type Source interface {
-	Get(dest interface{}, args ...interface{}) (bool, error) // 获取 必须, PS: bool 表示没有结果
+	Get(dest interface{}, args ...interface{}) (bool, error) // 获取 必须, PS: 没有结果也是一种结果 用bool表示
 	Set(data interface{}, args ...interface{}) error         // 设置
 	Del(args ...interface{}) error                           // 删除
 }
@@ -27,6 +27,16 @@ type Source interface {
 type cacheValue struct {
 	Vaild bool   `json:"vaild,omitempty"`
 	Data  string `json:"data,omitempty"`
+}
+
+func (val *cacheValue) parse(dest interface{}) (bool, error) {
+	if !val.Vaild {
+		return false, nil
+	}
+	if err := jsonplus.Load(val.Data, dest); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // Cacher ...
@@ -95,19 +105,22 @@ func (cacher *Cacher) getLocker(args ...interface{}) (*locker.Locker, error) {
 }
 
 // 回源
-func (cacher *Cacher) backToSource(dest interface{}, args ...interface{}) error {
+func (cacher *Cacher) backToSource(dest interface{}, args ...interface{}) (bool, error) {
 	lock, err := cacher.getLocker(args...)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer lock.Close()
 
 	ok, err := cacher.source.Get(dest, args...)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return cacher.cacheSet(ok, dest, args...)
+	if err = cacher.cacheSet(ok, dest, args...); err != nil {
+		return false, err
+	}
+	return ok, nil
 }
 
 // Set ...
@@ -160,38 +173,39 @@ func (cacher *Cacher) Del(args ...interface{}) error {
 }
 
 // Get ...
-func (cacher *Cacher) Get(dest interface{}, args ...interface{}) error {
+func (cacher *Cacher) Get(dest interface{}, args ...interface{}) (bool, error) {
 	val := &cacheValue{}
 	ok, deadline, err := cacher.cacheGet(val, args...)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	now := time.Now()
 
 	// 从缓存中取到 并且无需提前回源
 	if ok && deadline-now.Unix() > int64(cacher.safety) {
-		return jsonplus.Load(val.Data, dest)
+		return val.parse(dest)
 	}
 
 	// 从缓存中取到 提前回源
 	if ok && deadline-now.Unix() <= int64(cacher.safety) {
 		if cacher.isDisableGoroutine { // 同步回源
-			if err = cacher.backToSource(dest, args...); err != nil {
+			vaild, err := cacher.backToSource(dest, args...)
+			if err != nil {
 				mlogger.WarnN(cacher.mLogName, "safety sync cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
-				return jsonplus.Load(val.Data, dest) // 回源失败使用缓存
+				return val.parse(dest) // 回源失败 使用缓存
 			}
-			return nil // 回源成功 使用源
+			return vaild, nil // 回源成功 使用源
 		}
 
 		// 异步回源
 		go func() {
 			destCopy := reflect.New(reflect.TypeOf(dest).Elem()).Interface() // 拷贝一个指针
-			if err = cacher.backToSource(destCopy, args...); err != nil {
+			if _, err = cacher.backToSource(destCopy, args...); err != nil {
 				mlogger.WarnN(cacher.mLogName, "safety async cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
 			}
 		}()
-		return jsonplus.Load(val.Data, dest) // 使用缓存
+		return val.parse(dest) // 使用缓存
 	}
 
 	// 缓存中取不到 强制回源
