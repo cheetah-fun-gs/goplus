@@ -10,6 +10,7 @@ import (
 	redigoplus "github.com/cheetah-fun-gs/goplus/dao/redigo"
 	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
 	"github.com/cheetah-fun-gs/goplus/locker"
+	"github.com/cheetah-fun-gs/goplus/logger"
 	mlogger "github.com/cheetah-fun-gs/goplus/multier/multilogger"
 	redigo "github.com/gomodule/redigo/redis"
 )
@@ -47,7 +48,7 @@ type Cacher struct {
 	expire             int  // 缓存超时时间
 	safety             int  // 回源安全时间 在缓存时间不足safety时, 开始回源
 	isDisableGoroutine bool // 是否禁用goroutine  faas中需要禁用
-	mLogName           string
+	mlogname           string
 }
 
 // New 一个新的缓存器
@@ -60,7 +61,7 @@ func New(name string, pool *redigo.Pool, source Source, v ...int) *Cacher {
 		source:   source,
 		expire:   600,
 		safety:   30,
-		mLogName: "default",
+		mlogname: "default",
 	}
 	if len(v) >= 1 && v[0] != 0 {
 		cacher.expire = v[0]
@@ -76,7 +77,7 @@ func New(name string, pool *redigo.Pool, source Source, v ...int) *Cacher {
 
 // SetMLogName 设置日志器名称
 func (cacher *Cacher) SetMLogName(name string) {
-	cacher.mLogName = name
+	cacher.mlogname = name
 }
 
 // DisableGoroutine 禁用协程 比如faas无法使用协程
@@ -195,7 +196,7 @@ func (cacher *Cacher) Get(dest interface{}, args ...interface{}) (bool, error) {
 		if cacher.isDisableGoroutine { // 同步回源
 			vaild, err := cacher.backToSource(dest, args...)
 			if err != nil {
-				mlogger.WarnN(cacher.mLogName, "safety sync cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
+				mlogger.WarnN(cacher.mlogname, "safety sync cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
 				return val.parse(dest) // 回源失败 使用缓存
 			}
 			return vaild, nil // 回源成功 使用源
@@ -205,7 +206,7 @@ func (cacher *Cacher) Get(dest interface{}, args ...interface{}) (bool, error) {
 		go func() {
 			destCopy := reflect.New(reflect.TypeOf(dest).Elem()).Interface() // 拷贝一个指针
 			if _, err = cacher.backToSource(destCopy, args...); err != nil {
-				mlogger.WarnN(cacher.mLogName, "safety async cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
+				mlogger.WarnN(cacher.mlogname, "safety async cacher.backToSource, key: %v, err: %v", cacher.getKey(args...), err)
 			}
 		}()
 		return val.parse(dest) // 使用缓存
@@ -246,4 +247,11 @@ func (cacher *Cacher) cacheGet(val *cacheValue, args ...interface{}) (ok bool, d
 
 	deadline = time.Now().Unix() + expire
 	return
+}
+
+func init() {
+	n := "default"
+	if _, err := mlogger.RetrieveN(n); err != nil {
+		mlogger.Register(n, logger.New())
+	}
 }
