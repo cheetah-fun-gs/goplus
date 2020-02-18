@@ -10,20 +10,20 @@ import (
 	redigo "github.com/gomodule/redigo/redis"
 )
 
-type example map[string]interface{}
+type sample map[string]interface{}
 
-func (e example) Set(data interface{}, args ...interface{}) error {
-	e[args[0].(string)] = data
+func (s sample) Set(data interface{}, args ...interface{}) error {
+	s[args[0].(string)] = data
 	return nil
 }
 
-func (e example) Del(args ...interface{}) error {
-	delete(e, args[0].(string))
+func (s sample) Del(args ...interface{}) error {
+	delete(s, args[0].(string))
 	return nil
 }
 
-func (e example) Get(dest interface{}, args ...interface{}) (bool, error) {
-	v, ok := e[args[0].(string)]
+func (s sample) Get(dest interface{}, args ...interface{}) (bool, error) {
+	v, ok := s[args[0].(string)]
 	if !ok {
 		return false, nil
 	}
@@ -44,7 +44,7 @@ func main() {
 	pool := &redigo.Pool{
 		Dial: dial,
 	}
-	c := cacher.New("test", pool, &example{})
+	c := cacher.New("test", pool, &sample{})
 	c.DisableGoroutine()
 
 	// int
