@@ -44,6 +44,8 @@ func main() {
 	pool := &redigo.Pool{
 		Dial: dial,
 	}
+	defer pool.Close()
+
 	c := cacher.New("test", pool, &sample{})
 	c.DisableGoroutine()
 
