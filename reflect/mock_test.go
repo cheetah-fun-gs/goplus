@@ -6,7 +6,14 @@ import (
 	"time"
 )
 
-func TestMockKeep(t *testing.T) {
+func skipRecurse(typ reflect.Type) bool {
+	if typ.String() == "time.Time" || typ.String() == "*time.Time" {
+		return true
+	}
+	return false
+}
+
+func TestMock(t *testing.T) {
 	type test0 struct {
 		A0 int    `json:"a0,omitempty"`
 		B0 string `json:"b0,omitempty"`
@@ -52,7 +59,7 @@ func TestMockKeep(t *testing.T) {
 			args: args{
 				v: 1,
 			},
-			want: 1,
+			want: 0,
 		},
 		{
 			name: "all",
@@ -64,8 +71,8 @@ func TestMockKeep(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := MockKeep(tt.args.v); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MockKeep() = %v, want %v", got, tt.want)
+			if got := Mock(tt.args.v).SkipRecurse(skipRecurse).Value(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Mock() = %v, want %v", got, tt.want)
 			}
 		})
 	}
