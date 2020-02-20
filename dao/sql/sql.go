@@ -3,6 +3,7 @@ package sql
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 	"strings"
 
 	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
@@ -39,8 +40,9 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 	for _, name := range columns {
 		val, ok := fields[name]
 		if !ok {
-			val = sql.RawBytes{}
+			return nil, fmt.Errorf("column not in fields: %v", name)
 		}
+		fmt.Printf("%+v, %v\n", val, reflect.TypeOf(val))
 		dest = append(dest, val)
 	}
 
@@ -52,6 +54,11 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 	for i := 0; i < len(columns); i++ {
 		result[columns[i]] = dest[i]
 	}
+	fmt.Printf("****\n")
+	for _, val := range result {
+		fmt.Println(reflect.ValueOf(val).Elem())
+	}
+
 	return result, nil
 }
 
@@ -59,7 +66,7 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 func Get(rows *sql.Rows, v interface{}) error {
 	fields, ok := v.(map[string]interface{})
 	if !ok {
-		fields = reflectplus.MockStruct(v, true, false)
+		fields = reflectplus.Mock(v).DisableRecurse().Pointer().Value().(map[string]interface{})
 	}
 
 	columns, err := rows.Columns()
@@ -78,11 +85,15 @@ func Get(rows *sql.Rows, v interface{}) error {
 
 // Select ...
 func Select(rows *sql.Rows, v interface{}) error {
-	vv := reflectplus.MockSlice(v, true, false)[0]
-
-	fields, ok := vv.(map[string]interface{})
+	vv := reflectplus.Mock(v).DisableRecurse().Pointer().Value()
+	vvv, ok := vv.([]interface{})
 	if !ok {
-		fields = reflectplus.MockStruct(vv, true, false)
+		return fmt.Errorf("v is not []interface{}")
+	}
+
+	fields, ok := vvv[0].(map[string]interface{})
+	if !ok {
+		fields = reflectplus.Mock(vvv[0]).DisableRecurse().Pointer().Value().(map[string]interface{})
 	}
 
 	columns, err := rows.Columns()
@@ -105,7 +116,7 @@ func Select(rows *sql.Rows, v interface{}) error {
 func GenInsert(tableName string, v interface{}) (string, []interface{}) {
 	fields, ok := v.(map[string]interface{})
 	if !ok {
-		fields = reflectplus.MockStruct(v, true, false)
+		fields = reflectplus.Mock(v).DisableRecurse().Pointer().Value().(map[string]interface{})
 	}
 
 	coloums := []string{}

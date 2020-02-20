@@ -37,7 +37,7 @@ func HMSet(conn redigo.Conn, key string, v interface{}) (int, error) {
 			return 0, err
 		}
 	case reflect.Struct:
-		data = reflectplus.MockStruct(v, true, false)
+		data = reflectplus.Mock(v).Value().(map[string]interface{})
 	default:
 		return 0, fmt.Errorf("v must be Map or Struct")
 	}
@@ -60,7 +60,7 @@ func HMGet(conn redigo.Conn, key string, dest interface{}) error {
 			return err
 		}
 	case reflect.Struct:
-		data = reflectplus.MockStruct(dest, true, false)
+		data = reflectplus.Mock(dest).Value().(map[string]interface{})
 	default:
 		return fmt.Errorf("dest must be Map or Struct")
 	}
