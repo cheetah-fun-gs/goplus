@@ -116,7 +116,7 @@ func Select(rows *sql.Rows, v interface{}) error {
 func GenInsert(tableName string, v interface{}) (string, []interface{}) {
 	fields, ok := v.(map[string]interface{})
 	if !ok {
-		fields = reflectplus.Mock(v).DisableRecurse().Pointer().Value().(map[string]interface{})
+		fields = reflectplus.Mock(v).DisableRecurse().Value().(map[string]interface{})
 	}
 
 	coloums := []string{}
