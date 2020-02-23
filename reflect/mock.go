@@ -47,7 +47,9 @@ func (mocker *Mocker) SkipRecurse(f func(typ reflect.Type) bool) *Mocker {
 
 // Value ...
 func (mocker *Mocker) Value() interface{} {
-	return mockAny(reflect.ValueOf(mocker.data),
+	return mockAny(
+		reflect.TypeOf(mocker.data),
+		reflect.ValueOf(mocker.data),
 		mocker.isRandom,
 		mocker.isPointer,
 		mocker.isRecurse,
@@ -65,7 +67,7 @@ func Mock(v interface{}) *Mocker {
 	}
 }
 
-func newValue(v reflect.Value, isRandom, isPointer bool) interface{} {
+func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) interface{} {
 	switch v.Kind() {
 	case reflect.Bool:
 		var val bool
@@ -253,15 +255,16 @@ func newValue(v reflect.Value, isRandom, isPointer bool) interface{} {
 		// 此时随机值是返回初始值
 		if isRandom {
 			if isPointer {
-				return reflect.New(v.Type()).Interface()
+				return reflect.New(typ).Interface()
 			}
-			return reflect.New(v.Type()).Elem().Interface()
+			return reflect.New(typ).Elem().Interface()
 		}
+
 		// 返回原值
 		if isPointer {
-			val := reflect.PtrTo(v.Type())     // 创建一个指针
-			reflect.ValueOf(val).Elem().Set(v) // 为指针赋值
-			return val
+			dest := reflect.New(typ) // 创建一个指针
+			dest.Elem().Set(v)       // 为指针赋值
+			return dest.Interface()
 		}
 		return v.Interface()
 	default:
@@ -269,26 +272,27 @@ func newValue(v reflect.Value, isRandom, isPointer bool) interface{} {
 	}
 }
 
-func mockAny(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
+func mockAny(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
+	typ = DeepElemType(typ)
 	v = DeepElemValue(v)
 	switch v.Kind() {
 	case reflect.Map:
-		return mockMap(v, isRandom, isPointer, isRecurse, skipRecurse)
+		return mockMap(typ, v, isRandom, isPointer, isRecurse, skipRecurse)
 	case reflect.Struct:
-		return mockStruct(v, isRandom, isPointer, isRecurse, skipRecurse)
+		return mockStruct(typ, v, isRandom, isPointer, isRecurse, skipRecurse)
 	case reflect.Slice:
-		return mockSlice(v, isRandom, isPointer, isRecurse, skipRecurse)
+		return mockSlice(typ, v, isRandom, isPointer, isRecurse, skipRecurse)
 	case reflect.Array:
-		return mockArray(v, isRandom, isPointer, isRecurse, skipRecurse)
+		return mockArray(typ, v, isRandom, isPointer, isRecurse, skipRecurse)
 	case reflect.Chan, reflect.Func, reflect.Interface:
 		return nil
 	default:
-		return newValue(v, isRandom, isPointer)
+		return newValue(typ, v, isRandom, isPointer)
 	}
 }
 
 // mockStruct ..
-func mockStruct(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
+func mockStruct(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
 	result := map[string]interface{}{}
 	for i := 0; i < v.NumField(); i++ {
 		fieldValue := DeepElemValue(v.Field(i))
@@ -299,9 +303,9 @@ func mockStruct(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurs
 			key := structFieldName(fieldStructType, "json") // 使用json tag
 			var val interface{}
 			if isRecurse && !skipRecurse(fieldType) {
-				val = mockAny(reflect.New(fieldType), isRandom, isPointer, isRecurse, skipRecurse)
+				val = mockAny(typ, reflect.New(fieldType), isRandom, isPointer, isRecurse, skipRecurse)
 			} else {
-				val = newValue(fieldValue, isRandom, isPointer)
+				val = newValue(typ, fieldValue, isRandom, isPointer)
 			}
 			result[key] = val
 		}
@@ -310,31 +314,31 @@ func mockStruct(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurs
 }
 
 // mockSlice ..
-func mockSlice(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
+func mockSlice(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
 	if v.Len() > 0 {
-		return mockArray(v, isRandom, isPointer, isRecurse, skipRecurse).([]interface{})
+		return mockArray(typ, v, isRandom, isPointer, isRecurse, skipRecurse).([]interface{})
 	}
 	// 长度为空 填充一个
 	var val interface{}
 	itemValue := reflect.New(DeepElemType(v.Type().Elem()))
 	if isRecurse && !skipRecurse(itemValue.Type()) {
-		val = mockAny(itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+		val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 	} else {
-		val = newValue(itemValue, isRandom, isPointer)
+		val = newValue(typ, itemValue, isRandom, isPointer)
 	}
 	return []interface{}{val}
 }
 
 // mockArray ..
-func mockArray(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
+func mockArray(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
 	result := []interface{}{}
 	for i := 0; i < v.Len(); i++ {
 		var val interface{}
 		itemValue := v.Index(i)
 		if isRecurse && !skipRecurse(itemValue.Type()) {
-			val = mockAny(itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+			val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 		} else {
-			val = newValue(itemValue, isRandom, isPointer)
+			val = newValue(typ, itemValue, isRandom, isPointer)
 		}
 		result = append(result, val)
 	}
@@ -342,7 +346,7 @@ func mockArray(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse
 }
 
 // mockMap ..
-func mockMap(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
+func mockMap(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse func(typ reflect.Type) bool) interface{} {
 	result := map[string]interface{}{}
 	iter := v.MapRange()
 	for iter.Next() {
@@ -350,9 +354,9 @@ func mockMap(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse f
 		var val interface{}
 		itemValue := iter.Value()
 		if isRecurse && !skipRecurse(itemValue.Type()) {
-			val = mockAny(itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+			val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 		} else {
-			val = newValue(itemValue, isRandom, isPointer)
+			val = newValue(typ, itemValue, isRandom, isPointer)
 		}
 		result[key] = val
 	}
@@ -361,9 +365,9 @@ func mockMap(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurse f
 		var val interface{}
 		itemValue := reflect.New(DeepElemType(v.Type().Elem()))
 		if isRecurse && !skipRecurse(itemValue.Type()) {
-			val = mockAny(itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+			val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 		} else {
-			val = newValue(itemValue, isRandom, isPointer)
+			val = newValue(typ, itemValue, isRandom, isPointer)
 		}
 		result[""] = val
 	}

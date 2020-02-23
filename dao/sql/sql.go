@@ -3,7 +3,6 @@ package sql
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
 	"strings"
 
 	jsonplus "github.com/cheetah-fun-gs/goplus/encoding/json"
@@ -42,7 +41,6 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 		if !ok {
 			return nil, fmt.Errorf("column not in fields: %v", name)
 		}
-		fmt.Printf("%+v, %v\n", val, reflect.TypeOf(val))
 		dest = append(dest, val)
 	}
 
@@ -54,11 +52,6 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 	for i := 0; i < len(columns); i++ {
 		result[columns[i]] = dest[i]
 	}
-	fmt.Printf("****\n")
-	for _, val := range result {
-		fmt.Println(reflect.ValueOf(val).Elem())
-	}
-
 	return result, nil
 }
 
@@ -66,7 +59,7 @@ func scanOne(rows *sql.Rows, columns []string, fields map[string]interface{}) (m
 func Get(rows *sql.Rows, v interface{}) error {
 	fields, ok := v.(map[string]interface{})
 	if !ok {
-		fields = reflectplus.Mock(v).DisableRecurse().Pointer().Value().(map[string]interface{})
+		fields = reflectplus.Mock(v).DisableRecurse().Random().Pointer().Value().(map[string]interface{})
 	}
 
 	columns, err := rows.Columns()
@@ -85,7 +78,7 @@ func Get(rows *sql.Rows, v interface{}) error {
 
 // Select ...
 func Select(rows *sql.Rows, v interface{}) error {
-	vv := reflectplus.Mock(v).DisableRecurse().Pointer().Value()
+	vv := reflectplus.Mock(v).DisableRecurse().Random().Pointer().Value()
 	vvv, ok := vv.([]interface{})
 	if !ok {
 		return fmt.Errorf("v is not []interface{}")
