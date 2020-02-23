@@ -292,8 +292,8 @@ func mockStruct(v reflect.Value, isRandom, isPointer, isRecurse bool, skipRecurs
 	result := map[string]interface{}{}
 	for i := 0; i < v.NumField(); i++ {
 		fieldValue := DeepElemValue(v.Field(i))
-		fieldType := fieldValue.Type()
-		fieldStructType := fieldType.Field(i)
+		fieldStructType := v.Type().Field(i)
+		fieldType := DeepElemType(fieldStructType.Type)
 
 		if fieldStructType.PkgPath == "" { // 只处理导出的字段
 			key := structFieldName(fieldStructType, "json") // 使用json tag
