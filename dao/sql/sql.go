@@ -67,13 +67,14 @@ func Get(rows *sql.Rows, v interface{}) error {
 		return err
 	}
 
-	rows.Next()
-	data, err := scanOne(rows, columns, fields)
-	if err != nil {
-		return err
+	if rows.Next() {
+		data, err := scanOne(rows, columns, fields)
+		if err != nil {
+			return err
+		}
+		return jsonplus.Convert(data, v)
 	}
-
-	return jsonplus.Convert(data, v)
+	return sql.ErrNoRows
 }
 
 // Select ...
