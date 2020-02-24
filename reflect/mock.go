@@ -72,7 +72,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Bool:
 		var val bool
 		if isRandom {
-			if randplus.MustRandint(0, 1) == 1 {
+			if rand.Int31()%2 == 0 {
 				val = true
 			}
 		} else {
@@ -85,7 +85,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Int:
 		var val int
 		if isRandom {
-			val = int(randplus.MustRandint(-2147483648, 2147483647))
+			val = rand.Int()
 		} else {
 			val = int(v.Int())
 		}
@@ -96,7 +96,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Int8:
 		var val int8
 		if isRandom {
-			val = int8(randplus.MustRandint(-128, 127))
+			val = int8(randplus.MustRandint(1, 127))
 		} else {
 			val = int8(v.Int())
 		}
@@ -107,7 +107,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Int16:
 		var val int16
 		if isRandom {
-			val = int16(randplus.MustRandint(-32768, 32767))
+			val = int16(randplus.MustRandint(1, 32767))
 		} else {
 			val = int16(v.Int())
 		}
@@ -118,7 +118,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Int32:
 		var val int32
 		if isRandom {
-			val = int32(randplus.MustRandint(-2147483648, 2147483647))
+			val = rand.Int31()
 		} else {
 			val = int32(v.Int())
 		}
@@ -129,7 +129,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Int64:
 		var val int64
 		if isRandom {
-			val = int64(randplus.MustRandint(-9223372036854775808, 9223372036854775807))
+			val = rand.Int63()
 		} else {
 			val = v.Int()
 		}
@@ -140,7 +140,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Uint:
 		var val uint
 		if isRandom {
-			val = uint(randplus.MustRandint(1, 4294967295))
+			val = uint(rand.Uint64())
 		} else {
 			val = uint(v.Int())
 		}
@@ -173,7 +173,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Uint32:
 		var val uint32
 		if isRandom {
-			val = uint32(randplus.MustRandint(1, 4294967295))
+			val = rand.Uint32()
 		} else {
 			val = uint32(v.Int())
 		}
@@ -184,7 +184,7 @@ func newValue(typ reflect.Type, v reflect.Value, isRandom, isPointer bool) inter
 	case reflect.Uint64:
 		var val uint64
 		if isRandom {
-			val = uint64(randplus.MustRandint(1, 9223372036854775807) + randplus.MustRandint(0, 9223372036854775807))
+			val = rand.Uint64()
 		} else {
 			val = uint64(v.Int())
 		}
@@ -303,9 +303,9 @@ func mockStruct(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurs
 			key := structFieldName(fieldStructType, "json") // 使用json tag
 			var val interface{}
 			if isRecurse && !skipRecurse(fieldType) {
-				val = mockAny(typ, reflect.New(fieldType), isRandom, isPointer, isRecurse, skipRecurse)
+				val = mockAny(fieldType, fieldValue, isRandom, isPointer, isRecurse, skipRecurse)
 			} else {
-				val = newValue(typ, fieldValue, isRandom, isPointer)
+				val = newValue(fieldType, fieldValue, isRandom, isPointer)
 			}
 			result[key] = val
 		}
@@ -320,11 +320,12 @@ func mockSlice(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse
 	}
 	// 长度为空 填充一个
 	var val interface{}
-	itemValue := reflect.New(DeepElemType(v.Type().Elem()))
-	if isRecurse && !skipRecurse(itemValue.Type()) {
-		val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+	itemType := DeepElemType(typ.Elem())
+	itemValue := reflect.New(itemType).Elem()
+	if isRecurse && !skipRecurse(itemType) {
+		val = mockAny(itemType, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 	} else {
-		val = newValue(typ, itemValue, isRandom, isPointer)
+		val = newValue(itemType, itemValue, isRandom, isPointer)
 	}
 	return []interface{}{val}
 }
@@ -335,10 +336,11 @@ func mockArray(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse
 	for i := 0; i < v.Len(); i++ {
 		var val interface{}
 		itemValue := v.Index(i)
-		if isRecurse && !skipRecurse(itemValue.Type()) {
-			val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+		itemType := itemValue.Type()
+		if isRecurse && !skipRecurse(itemType) {
+			val = mockAny(itemType, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 		} else {
-			val = newValue(typ, itemValue, isRandom, isPointer)
+			val = newValue(itemType, itemValue, isRandom, isPointer)
 		}
 		result = append(result, val)
 	}
@@ -353,21 +355,23 @@ func mockMap(typ reflect.Type, v reflect.Value, isRandom, isPointer, isRecurse b
 		key := iter.Key().String()
 		var val interface{}
 		itemValue := iter.Value()
-		if isRecurse && !skipRecurse(itemValue.Type()) {
-			val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+		itemType := itemValue.Type()
+		if isRecurse && !skipRecurse(itemType) {
+			val = mockAny(itemType, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 		} else {
-			val = newValue(typ, itemValue, isRandom, isPointer)
+			val = newValue(itemType, itemValue, isRandom, isPointer)
 		}
 		result[key] = val
 	}
 	// 没有key 填充一个
 	if len(result) == 0 {
 		var val interface{}
-		itemValue := reflect.New(DeepElemType(v.Type().Elem()))
-		if isRecurse && !skipRecurse(itemValue.Type()) {
-			val = mockAny(typ, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
+		itemType := DeepElemType(v.Type().Elem())
+		itemValue := reflect.New(itemType).Elem()
+		if isRecurse && !skipRecurse(itemType) {
+			val = mockAny(itemType, itemValue, isRandom, isPointer, isRecurse, skipRecurse)
 		} else {
-			val = newValue(typ, itemValue, isRandom, isPointer)
+			val = newValue(itemType, itemValue, isRandom, isPointer)
 		}
 		result[""] = val
 	}

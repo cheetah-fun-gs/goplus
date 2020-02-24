@@ -78,15 +78,9 @@ func Get(rows *sql.Rows, v interface{}) error {
 
 // Select ...
 func Select(rows *sql.Rows, v interface{}) error {
-	vv := reflectplus.Mock(v).DisableRecurse().Random().Pointer().Value()
-	vvv, ok := vv.([]interface{})
+	vv, ok := reflectplus.Mock(v).DisableRecurse().Random().Value().([]interface{})
 	if !ok {
 		return fmt.Errorf("v is not []interface{}")
-	}
-
-	fields, ok := vvv[0].(map[string]interface{})
-	if !ok {
-		fields = reflectplus.Mock(vvv[0]).DisableRecurse().Pointer().Value().(map[string]interface{})
 	}
 
 	columns, err := rows.Columns()
@@ -96,6 +90,7 @@ func Select(rows *sql.Rows, v interface{}) error {
 
 	data := []map[string]interface{}{}
 	for rows.Next() {
+		fields := reflectplus.Mock(vv[0]).DisableRecurse().Pointer().Value().(map[string]interface{})
 		result, err := scanOne(rows, columns, fields)
 		if err != nil {
 			return err
