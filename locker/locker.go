@@ -27,7 +27,7 @@ func Lock(conn redigo.Conn, name string, expire int) error {
 }
 
 const (
-	defaultInterval = 500  // 默认间隔 毫秒
+	defaultInterval = 100  // 默认间隔 毫秒
 	deleteInterval  = 1000 // 执行删除锁操作的最小间隔 毫秒
 )
 
