@@ -15,7 +15,7 @@
 - [sql数据库](#sql数据库)
 
 ### 日志器
-```import mlogger "github.com/cheetah-fun-gs/goplus/multier/multilogger"```
+```import mlogger "github.com/cheetah-fun-gs/goplus/multier/multilogger"```  
 PS: 考虑到三方库需要打印机控制台日志，可不先Init直接Register，Init后会被清除。  
 
 #### 定义
