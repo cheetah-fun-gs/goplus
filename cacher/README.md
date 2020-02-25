@@ -3,6 +3,8 @@
 
 ## 如何使用
 ```golang
+import	"github.com/cheetah-fun-gs/goplus/cacher"
+
 // Source 源对象
 type Source interface {
 	Get(dest interface{}, args ...interface{}) (bool, error) // 获取 必须, PS: 没有结果也是一种结果 用bool表示
@@ -10,6 +12,7 @@ type Source interface {
 	Del(args ...interface{}) error                           // 删除
 }
 ```
+
 1. ```Get(dest interface{}, args ...interface{}) (bool, error)``` 回源方法，必须提供。dest是结果的指针，args是指向该结果的参数列表，bool表示是否有结果
 2. ```Set(data interface{}, args ...interface{}) error``` 同时设置源和缓存，不使用可实现空函数
 3. ```Del(args ...interface{}) error ``` 同时设置源和缓存，不使用可实现空函数
